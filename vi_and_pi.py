@@ -7,7 +7,7 @@ import timeit
 import gym
 import numpy as np
 
-GRID_SIZE = 30
+GRID_SIZE = 5
 MAX_ITER = 1000
 SEED = 1
 
@@ -60,6 +60,7 @@ def evaluate_rewards_and_transitions(problem, mutate=False):
 @timing
 def value_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6, delta=10 ** -3):
 	""" Runs Value Iteration on a gym problem """
+
 	value_fn = np.zeros(problem.observation_space.n)
 	if R is None or T is None:
 		R, T = evaluate_rewards_and_transitions(problem)
@@ -120,10 +121,16 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 	return policy, i + 1
 
 
-def print_policy(policy, mapping=None, shape=(0,)):
+def print_policy(policy, problem, mapping=None, shape=(0,)):
 	pol = np.array([mapping[action] for action in policy]).reshape(shape).tolist()
 	pol[0][0] = 'S'
 	pol[-1][-1] = 'G'
+
+	for row in range(len(pol)):
+		for col in range(len(pol[0])):
+			if problem.env.desc[row][col] == b'H':
+				pol[row][col] = 'O'
+
 	print('\n'.join([''.join([str(cell) for cell in row]) for row in pol]))
 
 
@@ -134,6 +141,7 @@ def print_grid(problem):
 
 def run_discrete(environment_name, mapping, shape=None):
 	problem = gym.make(environment_name)
+	problem.seed(SEED)
 	print('== {} =='.format(environment_name))
 	print('Actions:', problem.env.action_space.n)
 	print('States:', problem.env.observation_space.n)
@@ -145,19 +153,24 @@ def run_discrete(environment_name, mapping, shape=None):
 	print('Iterations:', iters)
 	print()
 
+	if shape is not None:
+		print('== VI Policy ==')
+		print_policy(value_policy, problem, mapping, shape)
+		print()
+
 	print('== Policy Iteration ==')
 	policy, iters = policy_iteration(problem)
 	print('Iterations:', iters)
 	print()
 
+	if shape is not None:
+		print('== PI Policy ==')
+		print_policy(policy, problem, mapping, shape)
+		print()
+
 	diff = sum([abs(x - y) for x, y in zip(policy.flatten(), value_policy.flatten())])
 	if diff > 0:
 		print('Discrepancy:', diff)
-		print()
-
-	if shape is not None:
-		print('== Policy ==')
-		print_policy(policy, mapping, shape)
 		print()
 
 	return policy
@@ -173,7 +186,7 @@ if __name__ == "__main__":
 	gym.envs.registration.register(
 		id='ewall/FrozenLakeModified-v1',
 		entry_point='frozen_lake_mod:FrozenLakeModified',
-		kwargs={'map_size': GRID_SIZE, 'map_prob': 0.9},
+		kwargs={'map_size': GRID_SIZE, 'map_prob': 0.9, 'is_slippery' : False},
 		max_episode_steps=MAX_ITER,
 		reward_threshold=100.0,
 	)
