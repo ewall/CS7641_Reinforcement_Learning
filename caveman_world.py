@@ -2,7 +2,6 @@
 # Eric W. Wallace, ewallace8-at-gatech-dot-edu, GTID 903105196
 
 import sys
-from contextlib import closing
 
 import numpy as np
 from gym.envs import registration
@@ -77,12 +76,9 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 		outfile = sys.stdout
 
 		if self.lastaction is not None:
-			outfile.write("  a: {} --> s: {}\n".format(self.actions_text[self.lastaction], self.states_text[self.s]))
+			outfile.write("state: %s --> action: %s\n" %(self.actions_text[self.lastaction], self.states_text[self.s]))
 		else:
 			outfile.write("\n")
-
-		with closing(outfile):
-			return outfile.getvalue()
 
 	def print_grid(self):
 		""" n/a for this problem type, but does print a newline """
@@ -91,7 +87,7 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 	def print_policy(self, policy):
 		""" Pretty print given policy """
 		for s, a in zip(self.states_text.values(), [self.actions_text[action] for action in policy]):
-			print("State: %s --> Action: %s" % (s, a))
+			print("state: %s --> action: %s" % (s, a))
 		print()
 
 	def reset(self):
