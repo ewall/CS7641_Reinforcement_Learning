@@ -1,12 +1,13 @@
 # Project 4: Reinforcement Learning -- GT CS7641 Machine Learning, Fall 2019
 # Eric W. Wallace, ewallace8-at-gatech-dot-edu, GTID 903105196
 
+import random
 import timeit
 
 import gym
 import numpy as np
 
-import caveman_world    # registers 'ewall/CavemanWorld-v1' env
+import caveman_world  # registers 'ewall/CavemanWorld-v1' env
 import frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' env
 
 
@@ -74,6 +75,7 @@ def value_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6, 
 	""" Runs Value Iteration on a gym problem """
 
 	value_fn = np.zeros(problem.observation_space.n)
+	errors = []
 
 	# get transitions and rewards
 	if R is None or T is None:
@@ -88,12 +90,14 @@ def value_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6, 
 		Q = np.einsum('ijk,ijk -> ij', T, R + gamma * value_fn)
 		value_fn = np.max(Q, axis=1)
 
-		if np.max(np.abs(value_fn - previous_value_fn)) < delta:
+		err = np.max(np.abs(value_fn - previous_value_fn))
+		errors.append(err)
+		if err < delta:
 			break
 
 	# get and return optimal policy
 	policy = np.argmax(Q, axis=1)
-	return policy, i + 1
+	return policy, i + 1, errors
 
 
 @timing
@@ -108,6 +112,7 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 
 	num_spaces = problem.observation_space.n
 	num_actions = problem.action_space.n
+	errors = []
 
 	# initialize with a random policy and initial value function
 	policy = np.array([problem.action_space.sample() for _ in range(num_spaces)])
@@ -129,7 +134,9 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 			Q = np.einsum('ijk,ijk -> ij', T, R + gamma * value_fn)
 			value_fn = np.sum(encode_policy(policy, (num_spaces, num_actions)) * Q, 1)
 
-			if np.max(np.abs(previous_value_fn - value_fn)) < delta:
+			err = np.max(np.abs(previous_value_fn - value_fn))
+			errors.append(err)
+			if err < delta:
 				break
 
 		Q = np.einsum('ijk,ijk -> ij', T, R + gamma * value_fn)
@@ -139,10 +146,10 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 			break
 
 	# return optimal policy
-	return policy, i + 1
+	return policy, i + 1, errors
 
 
-def run_evaluation(environment_name):
+def run_and_evaluate(environment_name):
 	problem = gym.make(environment_name)
 	problem.seed(SEED)
 	print('== {} =='.format(environment_name))
@@ -151,8 +158,9 @@ def run_evaluation(environment_name):
 	problem.print_grid()
 
 	print('== Value Iteration ==')
-	vi_policy, iters = value_iteration(problem)
-	print('Iterations:', iters, '\n')
+	vi_policy, iters, errs = value_iteration(problem)
+	print('Iterations:', iters)
+	print('Error curve:', errs, '\n')
 
 	print('== VI Policy ==')
 	vi_score = evaluate_policy(problem, vi_policy)
@@ -160,16 +168,17 @@ def run_evaluation(environment_name):
 	problem.print_policy(vi_policy)
 
 	print('== Policy Iteration ==')
-	pi_policy, iters = policy_iteration(problem)
-	print('Iterations:', iters, '\n')
+	pi_policy, iters, errs = policy_iteration(problem)
+	print('Iterations:', iters)
+	print('Error curve:', errs, '\n')
 
 	print('== PI Policy ==')
 	pi_score = evaluate_policy(problem, pi_policy)
 	print('Average total reward', pi_score)
 	problem.print_policy(pi_policy)
 
-	diff = sum([abs(x - y) for x, y in zip(pi_policy.flatten(), vi_policy.flatten())])
-	print('Discrepancy:', diff, '\n')
+	diff = (vi_policy != pi_policy).flatten().sum()
+	print('Discrepancy:', diff)
 	if diff > 0:
 		if vi_score > pi_score:
 			print('Best score: VI')
@@ -177,6 +186,7 @@ def run_evaluation(environment_name):
 			print('Best score: PI')
 		else:
 			print('Tied score')
+	print()
 
 	return pi_policy
 
@@ -205,8 +215,12 @@ def evaluate_policy(env, policy, gamma=1.0, n=1000):
 
 if __name__ == "__main__":
 
+	# seed pseudo-RNG for reproducibility
+	random.seed(SEED)
+	np.random.seed(SEED)
+
 	# run Frozen Lake Modified (large grid problem)
-	run_evaluation('ewall/FrozenLakeModified-v1')
+	run_and_evaluate('ewall/FrozenLakeModified-v1')
 
 	# # run Caveman's World (simple problem)
-	run_evaluation('ewall/CavemanWorld-v1')
+	run_and_evaluate('ewall/CavemanWorld-v1')
