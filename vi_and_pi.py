@@ -6,8 +6,8 @@ import timeit
 import gym
 import numpy as np
 
-import caveman_world
-import frozen_lake_mod
+import caveman_world    # registers 'ewall/CavemanWorld-v1' env
+import frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' env
 
 
 MAX_ITER = 1000
@@ -21,7 +21,15 @@ SEED = 1
 #   Code version: commit 20481fc1e1a2fdfcba5b0ce27927e5e29a122fc4
 #   Availability: https://github.com/allanbreyes/gym-solutions/blob/master/analysis/mdp.py
 
+### Code Credit -- other functions on this page were modified from:
+#   Title: Deep Reinforcement Learning Demysitifed (Episode 2) — Policy Iteration, Value Iteration and Q-learning
+#   Author: Moustafa Alzantot (malzantot@ucla.edu)
+#   Date: 2017-07-09
+#   Code version: https://gist.github.com/malzantot/ed173b66e76a05e9c8eeec60dd476948
+#   Availability: https://medium.com/@m.alzantot/deep-reinforcement-learning-demysitifed-episode-2-policy-iteration-value-iteration-and-q-978f9e89ddaa
+
 def timing(f):
+	""" Simple decorator to time a function's execution """
 	def wrap(*args):
 		start_time = timeit.default_timer()
 		ret = f(*args)
@@ -32,7 +40,7 @@ def timing(f):
 	return wrap
 
 
-def evaluate_rewards_and_transitions(problem):
+def get_r_and_t(problem):
 	""" Generate R and T matrices from the problem's transitions """
 
 	# Enumerate state and action space sizes
@@ -46,20 +54,17 @@ def evaluate_rewards_and_transitions(problem):
 	# Iterate over states, actions, and transitions
 	for state in range(num_states):
 		for action in range(num_actions):
-
-			# ignore missing/invalid actions
-			try:
-				transitions_list = problem.env.P[state][action]
-			except KeyError:
-				continue
-
-			for transition in transitions_list:
+			for transition in problem.env.P[state][action]:
 				probability, next_state, reward, done = transition
 				R[state, action, next_state] = reward
 				T[state, action, next_state] = probability
 
 			# Normalize T across state + action axes
 			T[state, action, :] /= np.sum(T[state, action, :])
+
+	# save into the env for re-use
+	problem.env.R = R
+	problem.env.T = T
 
 	return R, T
 
@@ -69,9 +74,15 @@ def value_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6, 
 	""" Runs Value Iteration on a gym problem """
 
 	value_fn = np.zeros(problem.observation_space.n)
-	if R is None or T is None:
-		R, T = evaluate_rewards_and_transitions(problem)
 
+	# get transitions and rewards
+	if R is None or T is None:
+		if hasattr(problem.env, 'R') and hasattr(problem.env, 'T'):
+			R, T = problem.env.R, problem.env.T
+		else:
+			R, T = get_r_and_t(problem)
+
+	# iterate and improve value function
 	for i in range(max_iterations):
 		previous_value_fn = value_fn.copy()
 		Q = np.einsum('ijk,ijk -> ij', T, R + gamma * value_fn)
@@ -80,7 +91,7 @@ def value_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6, 
 		if np.max(np.abs(value_fn - previous_value_fn)) < delta:
 			break
 
-	# Get and return optimal policy
+	# get and return optimal policy
 	policy = np.argmax(Q, axis=1)
 	return policy, i + 1
 
@@ -90,7 +101,7 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 	""" Runs Policy Iteration on a gym problem """
 
 	def encode_policy(policy, shape):
-		""" One-hot encodes a policy """
+		""" one-hot encode a policy """
 		encoded_policy = np.zeros(shape)
 		encoded_policy[np.arange(shape[0]), policy] = 1
 		return encoded_policy
@@ -98,15 +109,18 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 	num_spaces = problem.observation_space.n
 	num_actions = problem.action_space.n
 
-	# Initialize with a random policy and initial value function
+	# initialize with a random policy and initial value function
 	policy = np.array([problem.action_space.sample() for _ in range(num_spaces)])
 	value_fn = np.zeros(num_spaces)
 
-	# Get transitions and rewards
+	# get transitions and rewards
 	if R is None or T is None:
-		R, T = evaluate_rewards_and_transitions(problem)
+		if hasattr(problem.env, 'R') and hasattr(problem.env, 'T'):
+			R, T = problem.env.R, problem.env.T
+		else:
+			R, T = get_r_and_t(problem)
 
-	# Iterate and improve policies
+	# iterate and improve policies
 	for i in range(max_iterations):
 		previous_policy = policy.copy()
 
@@ -124,11 +138,11 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 		if np.array_equal(policy, previous_policy):
 			break
 
-	# Return optimal policy
+	# return optimal policy
 	return policy, i + 1
 
 
-def run_discrete(environment_name):
+def run_evaluation(environment_name):
 	problem = gym.make(environment_name)
 	problem.seed(SEED)
 	print('== {} =='.format(environment_name))
@@ -137,29 +151,62 @@ def run_discrete(environment_name):
 	problem.print_grid()
 
 	print('== Value Iteration ==')
-	value_policy, iters = value_iteration(problem)
+	vi_policy, iters = value_iteration(problem)
 	print('Iterations:', iters, '\n')
 
 	print('== VI Policy ==')
-	problem.print_policy(value_policy)
+	vi_score = evaluate_policy(problem, vi_policy)
+	print('Average total reward', vi_score)
+	problem.print_policy(vi_policy)
 
 	print('== Policy Iteration ==')
-	policy, iters = policy_iteration(problem)
+	pi_policy, iters = policy_iteration(problem)
 	print('Iterations:', iters, '\n')
 
 	print('== PI Policy ==')
-	problem.print_policy(policy)
+	pi_score = evaluate_policy(problem, pi_policy)
+	print('Average total reward', pi_score)
+	problem.print_policy(pi_policy)
 
-	diff = sum([abs(x - y) for x, y in zip(policy.flatten(), value_policy.flatten())])
+	diff = sum([abs(x - y) for x, y in zip(pi_policy.flatten(), vi_policy.flatten())])
 	print('Discrepancy:', diff, '\n')
+	if diff > 0:
+		if vi_score > pi_score:
+			print('Best score: VI')
+		elif pi_score > vi_score:
+			print('Best score: PI')
+		else:
+			print('Tied score')
 
-	return policy
+	return pi_policy
+
+
+def run_episode(env, policy, gamma=1.0, render=False):
+	""" Runs a single episode on the given env and policy, and return the total reward """
+	obs = env.reset()
+	total_reward = 0
+	step_idx = 0
+	while True:
+		if render:
+			env.render()
+		obs, reward, done , _ = env.step(policy[obs])
+		total_reward += (gamma ** step_idx * reward)
+		step_idx += 1
+		if done:
+			break
+	return total_reward
+
+
+def evaluate_policy(env, policy, gamma=1.0, n=1000):
+	""" Run a policy multiple times and return the average total reward """
+	scores = [run_episode(env, policy, gamma, False) for _ in range(n)]
+	return np.mean(scores)
 
 
 if __name__ == "__main__":
 
 	# run Frozen Lake Modified (large grid problem)
-	run_discrete('ewall/FrozenLakeModified-v1')
+	run_evaluation('ewall/FrozenLakeModified-v1')
 
 	# # run Caveman's World (simple problem)
-	run_discrete('ewall/CavemanWorld-v1')
+	run_evaluation('ewall/CavemanWorld-v1')
