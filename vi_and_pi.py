@@ -143,8 +143,7 @@ def run_discrete(environment_name):
 	problem.print_policy(policy)
 
 	diff = sum([abs(x - y) for x, y in zip(policy.flatten(), value_policy.flatten())])
-	if diff > 0:
-		print('Discrepancy:', diff, '\n')
+	print('Discrepancy:', diff, '\n')
 
 	return policy
 
@@ -160,6 +159,15 @@ if __name__ == "__main__":
 		max_episode_steps=MAX_ITER,
 		reward_threshold=100.0,
 	)
+	gym.envs.registration.register(
+		id='ewall/CavemanWorld-v1',
+		entry_point='caveman_world:CavemanWorldEnv',
+		max_episode_steps=MAX_ITER,
+		reward_threshold=100.0,
+	)
 
 	# run Frozen Lake Modified (large grid problem)
 	run_discrete('ewall/FrozenLakeModified-v1')
+
+	# run Caveman's World (simple problem)
+	run_discrete('ewall/CavemanWorld-v1')
