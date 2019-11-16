@@ -76,6 +76,7 @@ def value_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6, 
 
 	value_fn = np.zeros(problem.observation_space.n)
 	errors = []
+	optimal_found = False
 
 	# get transitions and rewards
 	if R is None or T is None:
@@ -90,10 +91,19 @@ def value_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6, 
 		Q = np.einsum('ijk,ijk -> ij', T, R + gamma * value_fn)
 		value_fn = np.max(Q, axis=1)
 
+		# check error
 		err = np.max(np.abs(value_fn - previous_value_fn))
 		errors.append(err)
 		if err < delta:
 			break
+
+		# check if optimal policy already achieved
+		if hasattr(problem.env, 'optimal_policy') and optimal_found == False:
+			current_policy = np.argmax(Q, axis=1)
+			diff = diff_policies(current_policy, problem.optimal_policy)
+			if diff == 0:
+				optimal_found = True
+				print("Optimal policy found on iteration", str(i + 1))
 
 	# get and return optimal policy
 	policy = np.argmax(Q, axis=1)
@@ -113,6 +123,7 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 	num_spaces = problem.observation_space.n
 	num_actions = problem.action_space.n
 	errors = []
+	optimal_found = False
 
 	# initialize with a random policy and initial value function
 	policy = np.array([problem.action_space.sample() for _ in range(num_spaces)])
@@ -134,10 +145,19 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 			Q = np.einsum('ijk,ijk -> ij', T, R + gamma * value_fn)
 			value_fn = np.sum(encode_policy(policy, (num_spaces, num_actions)) * Q, 1)
 
+			# check error
 			err = np.max(np.abs(previous_value_fn - value_fn))
 			errors.append(err)
 			if err < delta:
 				break
+
+			# check if optimal policy already achieved
+			if hasattr(problem.env, 'optimal_policy') and optimal_found == False:
+				current_policy = np.argmax(Q, axis=1)
+				diff = diff_policies(current_policy, problem.optimal_policy)
+				if diff == 0:
+					optimal_found = True
+					print("Optimal policy found on iteration", str(i + 1))
 
 		Q = np.einsum('ijk,ijk -> ij', T, R + gamma * value_fn)
 		policy = np.argmax(Q, axis=1)
@@ -147,6 +167,33 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 
 	# return optimal policy
 	return policy, i + 1, errors
+
+
+def run_episode(env, policy, gamma=1.0, render=False):
+	""" Runs a single episode on the given env and policy, and return the total reward """
+	obs = env.reset()
+	total_reward = 0
+	step_idx = 0
+	while True:
+		if render:
+			env.render()
+		obs, reward, done , _ = env.step(policy[obs])
+		total_reward += (gamma ** step_idx * reward)
+		step_idx += 1
+		if done:
+			break
+	return total_reward
+
+
+def evaluate_policy(env, policy, gamma=1.0, n=1000):
+	""" Run a policy multiple times and return the average total reward """
+	scores = [run_episode(env, policy, gamma, False) for _ in range(n)]
+	return np.mean(scores)
+
+
+def diff_policies(policy1, policy2):
+	""" Count differences between two numpy arrays """
+	return (policy1 != policy2).flatten().sum()
 
 
 def run_and_evaluate(environment_name):
@@ -177,7 +224,7 @@ def run_and_evaluate(environment_name):
 	print('Average total reward', pi_score)
 	problem.print_policy(pi_policy)
 
-	diff = (vi_policy != pi_policy).flatten().sum()
+	diff = diff_policies(vi_policy, pi_policy)
 	print('Discrepancy:', diff)
 	if diff > 0:
 		if vi_score > pi_score:
@@ -189,28 +236,6 @@ def run_and_evaluate(environment_name):
 	print()
 
 	return pi_policy
-
-
-def run_episode(env, policy, gamma=1.0, render=False):
-	""" Runs a single episode on the given env and policy, and return the total reward """
-	obs = env.reset()
-	total_reward = 0
-	step_idx = 0
-	while True:
-		if render:
-			env.render()
-		obs, reward, done , _ = env.step(policy[obs])
-		total_reward += (gamma ** step_idx * reward)
-		step_idx += 1
-		if done:
-			break
-	return total_reward
-
-
-def evaluate_policy(env, policy, gamma=1.0, n=1000):
-	""" Run a policy multiple times and return the average total reward """
-	scores = [run_episode(env, policy, gamma, False) for _ in range(n)]
-	return np.mean(scores)
 
 
 if __name__ == "__main__":

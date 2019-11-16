@@ -68,7 +68,10 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 
 		self.actions_text = {0: "sleep", 1: "hunt", 2: "eat"}
 		self.states_text = {0: "hungry", 1: "got food", 2: "full", 3: "dead"}
+
 		self.reward_range = (-10, 10)
+
+		self.optimal_policy = np.array((1, 2, 0, 0))
 
 		super(CavemanWorldEnv, self).__init__(nS, nA, P, isd)
 
