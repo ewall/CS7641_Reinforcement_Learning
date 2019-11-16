@@ -24,6 +24,17 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 	The problem is described in Jonathan Scholz's "Markov Decision Processesand Reinforcement Learning: An Introduction
 	to Stochastic Planning" which (at the time of this writing) is available at this URL:
 	https://s3.amazonaws.com/ml-class/notes/MDPIntro.pdf
+
+	Modified the original by creating new transitions for states omitted in the diagram:
+	• when hungry, eating provides -1 reward and leaves you hungry
+	• when got good, hunting has 10% chance of killing you and 90% chance of getting more food with no reward
+	• when full, hunting has 80% chance of killing you and 20% chance of getting more food with no reward
+
+	These modifications do not change the optimal policy, which remains as follows:
+	• state: hungry --> action: hunt
+	• state: got food --> action: eat
+	• state: full --> action: sleep
+	• state: dead --> action: sleep
 	"""
 
 	metadata = {'render.modes': ['human']}
@@ -37,15 +48,22 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 		reference for P data structure: 
 			P[s][a] = [(prob, s',r, done), (prob, s', r, done)...]
 			states: {0: "hungry", 1: "got food", 2: "full", 3: "dead"}
-			rewards = {"hungry": 0, "got food": 1, "full": 10, "dead": -10}
+			rewards = {"hungry": 0, "got food": 1, "full": 10, "dead": -10 & end episode}
 			actions: {0: "sleep", 1: "hunt", 2: "eat"}
-				invalid/disallowed actions are omitted
 			#TODO these would be easier to read as enums, of course...
 		"""
-		P = {0: {0: [(0.7, 0, 0, False), (0.3, 3, -10, True)], 1: [(0.1, 3, -10, True), (0.9, 2, 1, False)]},
-		     1: {0: [(0.2, 0, 0, False), (0.8, 1, 1, False)], 2: [(0.2, 0, 0, False), (0.8, 2, 10, False)]},
-		     2: {0: [(1.0, 0, 0, False)], 2: [(1.0, 3, -10, True)]},
-		     3: {0: [(1.0, 3, 0, True)]}}
+		P = {0: {0: [(0.7, 0, 0, False), (0.3, 3, -10, True)],
+		         1: [(0.1, 3, -10, True), (0.9, 2, 1, False)],
+		         2: [(1.0, 0, -1, False)]},
+		     1: {0: [(0.2, 0, 0, False), (0.8, 1, 1, False)],
+		         1: [(0.1, 3, -10, True), (0.9, 2, 0, False)],
+		         2: [(0.2, 0, 0, False), (0.8, 2, 10, False)]},
+		     2: {0: [(1.0, 0, 0, False)],
+		         1: [(0.8, 3, -10, True), (0.2, 2, 0, False)],
+		         2: [(1.0, 3, -10, True)]},
+		     3: {0: [(1.0, 3, 0, True)],
+		         1: [(1.0, 3, 0, True)],
+		         2: [(1.0, 3, 0, True)]}}
 
 		isd = np.zeros(nS)  # initial state description doesn't matter for this problem, but is required by super()
 
@@ -75,6 +93,11 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 		for s, a in zip(self.states_text.values(), [self.actions_text[action] for action in policy]):
 			print("State: %s --> Action: %s" % (s, a))
 		print()
+
+	def reset(self):
+		self.s = 0
+		self.lastaction = None
+		return self.s
 
 
 # register this gym env when module is imported
