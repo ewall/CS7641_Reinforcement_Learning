@@ -79,23 +79,9 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 
 		P = {s: {a: [] for a in range(nA)} for s in range(nS)}
 
-		def to_s(row, col):
-			return row * ncol + col
-
-		def inc(row, col, a):
-			if a == LEFT:
-				col = max(col - 1, 0)
-			elif a == DOWN:
-				row = min(row + 1, nrow - 1)
-			elif a == RIGHT:
-				col = min(col + 1, ncol - 1)
-			elif a == UP:
-				row = max(row - 1, 0)
-			return row, col
-
 		for row in range(nrow):
 			for col in range(ncol):
-				s = to_s(row, col)
+				s = self.to_s(row, col)
 				for a in range(4):
 					li = P[s][a]
 					letter = desc[row, col]
@@ -104,8 +90,8 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 					else:
 						if is_slippery:
 							for b in [(a - 1) % 4, a, (a + 1) % 4]:
-								newrow, newcol = inc(row, col, b)
-								newstate = to_s(newrow, newcol)
+								newrow, newcol = self.inc(row, col, b)
+								newstate = self.to_s(newrow, newcol)
 								newletter = desc[newrow, newcol]
 								done = bytes(newletter) in b'GH'
 								if alt_reward:
@@ -117,8 +103,8 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 									rew = float(newletter == b'G')
 								li.append((1.0 / 3.0, newstate, rew, done))
 						else:
-							newrow, newcol = inc(row, col, a)
-							newstate = to_s(newrow, newcol)
+							newrow, newcol = self.inc(row, col, a)
+							newstate = self.to_s(newrow, newcol)
 							newletter = desc[newrow, newcol]
 							done = bytes(newletter) in b'GH'
 							if alt_reward:
@@ -131,6 +117,40 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 							li.append((1.0, newstate, rew, done))
 
 		super(FrozenLakeModified, self).__init__(nS, nA, P, isd)
+
+	def from_s(self, s):
+		""" Convert from state value to row and column tuple """
+		row = int(s/self.ncol)
+		col = s % self.ncol
+		return row, col
+
+	def get_neighbor_states(self, s):
+		""" Return all neighbors of a given state """
+		neighbors = []
+		row, col = self.from_s(s)
+
+		# try all actions
+		for a in range(self.nA):
+			r, c = self.inc(row, col, a)
+			s = self.to_s(r, c)
+			neighbors.append(s)
+
+		# trim the fat
+		neighbors = list(set(neighbors))
+		if s in neighbors: neighbors.remove(0)
+		return neighbors
+
+	def inc(self, row, col, a):
+		""" Given row and column, apply action and return new row and column tuple """
+		if a == LEFT:
+			col = max(col - 1, 0)
+		elif a == DOWN:
+			row = min(row + 1, self.nrow - 1)
+		elif a == RIGHT:
+			col = min(col + 1, self.ncol - 1)
+		elif a == UP:
+			row = max(row - 1, 0)
+		return row, col
 
 	def print_grid(self):
 		""" Pretty print the current grid"""
@@ -168,6 +188,10 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 		if mode != 'human':
 			with closing(outfile):
 				return outfile.getvalue()
+
+	def to_s(self, row, col):
+		""" Convert from row and column to state value """
+		return row * self.ncol + col
 
 
 ### the following should run when module is imported ###

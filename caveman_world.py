@@ -75,6 +75,18 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 
 		super(CavemanWorldEnv, self).__init__(nS, nA, P, isd)
 
+	def get_neighbor_states(self, s):
+		""" Return all neighbors of a given state """
+		if s == 0:
+			neighbors = (0, 1, 2, 3)
+		elif s == 1:
+			neighbors = (0, 1, 2)
+		elif s == 2:
+			neighbors = (0, 3)
+		else:
+			neighbors = ()
+		return neighbors
+
 	def print_grid(self):
 		""" n/a for this problem type, but does print a newline """
 		print()
