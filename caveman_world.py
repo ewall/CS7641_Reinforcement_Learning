@@ -5,7 +5,11 @@ import sys
 from contextlib import closing
 
 import numpy as np
+from gym.envs import registration
 from gym.envs.toy_text import discrete
+
+
+MAX_ITER = 1000
 
 
 class CavemanWorldEnv(discrete.DiscreteEnv):
@@ -62,3 +66,12 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 		for s, a in zip(self.states_text.values(), [self.actions_text[action] for action in policy]):
 			print("State: %s --> Action: %s" %(s, a))
 		print()
+
+
+# register this gym env when module is imported
+registration.register(
+	id='ewall/CavemanWorld-v1',
+	entry_point='caveman_world:CavemanWorldEnv',
+	max_episode_steps=MAX_ITER,
+	reward_threshold=100.0,
+)

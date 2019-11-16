@@ -1,12 +1,15 @@
 # Project 4: Reinforcement Learning -- GT CS7641 Machine Learning, Fall 2019
 # Eric W. Wallace, ewallace8-at-gatech-dot-edu, GTID 903105196
 
-import sys
 import timeit
+
 import gym
 import numpy as np
 
-GRID_SIZE = 5
+import caveman_world
+import frozen_lake_mod
+
+
 MAX_ITER = 1000
 SEED = 1
 
@@ -150,24 +153,8 @@ def run_discrete(environment_name):
 
 if __name__ == "__main__":
 
-	# register custom OpenAI Gym environments
-	sys.path.append('.')
-	gym.envs.registration.register(
-		id='ewall/FrozenLakeModified-v1',
-		entry_point='frozen_lake_mod:FrozenLakeModified',
-		kwargs={'map_size': GRID_SIZE, 'map_prob': 0.9, 'is_slippery' : False},
-		max_episode_steps=MAX_ITER,
-		reward_threshold=100.0,
-	)
-	gym.envs.registration.register(
-		id='ewall/CavemanWorld-v1',
-		entry_point='caveman_world:CavemanWorldEnv',
-		max_episode_steps=MAX_ITER,
-		reward_threshold=100.0,
-	)
-
 	# run Frozen Lake Modified (large grid problem)
 	run_discrete('ewall/FrozenLakeModified-v1')
 
-	# run Caveman's World (simple problem)
+	# # run Caveman's World (simple problem)
 	run_discrete('ewall/CavemanWorld-v1')

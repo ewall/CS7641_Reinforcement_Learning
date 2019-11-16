@@ -8,8 +8,13 @@ import numpy as np
 from six import StringIO  # , b
 
 from gym import utils
+from gym.envs import registration
 from gym.envs.toy_text import discrete
 from gym.envs.toy_text.frozen_lake import generate_random_map, LEFT, DOWN, RIGHT, UP, MAPS
+
+
+GRID_SIZE = 20
+MAX_ITER = 1000
 
 
 ### Code Credit: the following is only slightly modified from the original source:
@@ -52,17 +57,16 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 
 	metadata = {'render.modes': ['human', 'ansi']}
 
-	def __init__(self, desc=None, map_name=None, map_size=30, map_prob=0.9, is_slippery=True):
-		if map_size is not None:
-			desc = generate_random_map(size=map_size, p=map_prob)
-		elif desc is None and map_name is None:
-			desc = generate_random_map()
-		elif desc is None:
-			desc = MAPS[map_name]
+	def __init__(self, map_size=30, map_prob=0.9, is_slippery=True, alt_reward=True):
+		desc = generate_random_map(size=map_size, p=map_prob)
 		self.desc = desc = np.asarray(desc, dtype='c')
 		self.nrow, self.ncol = nrow, ncol = desc.shape
-		self.reward_range = (-1, 100)
 		self.mapping = {0: "◄", 1: "▼", 2: "►", 3: "▲"}  # {0: "←", 1: "↓", 2: "→", 3: "↑"}
+
+		if alt_reward:
+			self.reward_range = (-1, 100)
+		else:
+			self.reward_range = (0, 1)
 
 		nA = 4
 		nS = nrow * ncol
@@ -101,20 +105,26 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 								newstate = to_s(newrow, newcol)
 								newletter = desc[newrow, newcol]
 								done = bytes(newletter) in b'GH'
-								if newletter == b'G':  #TODO is there any point in changing this if all learners use gamma?
-									rew = 100.0
+								if alt_reward:
+									if newletter == b'G':
+										rew = 100.0
+									else:
+										rew = -1.0
 								else:
-									rew = -1.0
+									rew = float(newletter == b'G')
 								li.append((1.0 / 3.0, newstate, rew, done))
 						else:
 							newrow, newcol = inc(row, col, a)
 							newstate = to_s(newrow, newcol)
 							newletter = desc[newrow, newcol]
 							done = bytes(newletter) in b'GH'
-							if newletter == b'G':  #TODO see previous reward comment
-								rew = 100.0
+							if alt_reward:
+								if newletter == b'G':
+									rew = 100.0
+								else:
+									rew = -1.0
 							else:
-								rew = -1.0
+								rew = float(newletter == b'G')
 							li.append((1.0, newstate, rew, done))
 
 		super(FrozenLakeModified, self).__init__(nS, nA, P, isd)
@@ -145,7 +155,7 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 	def print_policy(self, policy):
 		""" Pretty print a given policy """
 		pol = np.array([self.mapping[action] for action in policy]).reshape(self.desc.shape).tolist()
-		pol[0][0] = 'S'
+		# pol[0][0] = 'S'
 		pol[-1][-1] = 'G'
 
 		for row in range(len(pol)):
@@ -155,3 +165,12 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 
 		print('\n'.join([''.join([str(cell) for cell in row]) for row in pol]))
 		print()
+
+# register this gym env when module is imported
+registration.register(
+	id='ewall/FrozenLakeModified-v1',
+	entry_point='frozen_lake_mod:FrozenLakeModified',
+	kwargs={'map_size': GRID_SIZE, 'map_prob': 0.9, 'is_slippery' : False},
+	max_episode_steps=MAX_ITER,
+	reward_threshold=100.0,
+)
