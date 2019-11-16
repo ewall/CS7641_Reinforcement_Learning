@@ -76,7 +76,7 @@ def value_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6, 
 
 	value_fn = np.zeros(problem.observation_space.n)
 	errors = []
-	optimal_found = False
+	optimal_achieved = False
 
 	# get transitions and rewards
 	if R is None or T is None:
@@ -95,19 +95,20 @@ def value_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6, 
 		err = np.max(np.abs(value_fn - previous_value_fn))
 		errors.append(err)
 		if err < delta:
+			print("Error %0.5f below delta on iteration %d" % (err, i + 1))
 			break
 
 		# check if optimal policy already achieved
-		if hasattr(problem.env, 'optimal_policy') and optimal_found == False:
+		if hasattr(problem.env, 'optimal_policy') and optimal_achieved == False:
 			current_policy = np.argmax(Q, axis=1)
 			diff = diff_policies(current_policy, problem.optimal_policy)
 			if diff == 0:
-				optimal_found = True
+				optimal_achieved = True
 				print("Optimal policy found on iteration", str(i + 1))
 
 	# get and return optimal policy
 	policy = np.argmax(Q, axis=1)
-	return policy, i + 1, errors
+	return policy, i + 1, errors, None
 
 
 @timing
@@ -123,7 +124,8 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 	num_spaces = problem.observation_space.n
 	num_actions = problem.action_space.n
 	errors = []
-	optimal_found = False
+	steps = 1
+	optimal_achieved, delta_achieved = False, False
 
 	# initialize with a random policy and initial value function
 	policy = np.array([problem.action_space.sample() for _ in range(num_spaces)])
@@ -149,15 +151,19 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 			err = np.max(np.abs(previous_value_fn - value_fn))
 			errors.append(err)
 			if err < delta:
+				if delta_achieved == False:
+					print("Error %0.5f below delta on iteration %d and step %d" % (err, i + 1, steps))
+					delta_achieved = True
+				steps += j
 				break
 
 			# check if optimal policy already achieved
-			if hasattr(problem.env, 'optimal_policy') and optimal_found == False:
+			if hasattr(problem.env, 'optimal_policy') and optimal_achieved == False:
 				current_policy = np.argmax(Q, axis=1)
 				diff = diff_policies(current_policy, problem.optimal_policy)
 				if diff == 0:
-					optimal_found = True
-					print("Optimal policy found on iteration", str(i + 1))
+					optimal_achieved = True
+					print("Optimal policy found on iteration %d and step %d" % (i + 1, j + 1))
 
 		Q = np.einsum('ijk,ijk -> ij', T, R + gamma * value_fn)
 		policy = np.argmax(Q, axis=1)
@@ -166,7 +172,7 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 			break
 
 	# return optimal policy
-	return policy, i + 1, errors
+	return policy, i + 1, errors, steps
 
 
 def run_episode(env, policy, gamma=1.0, render=False):
@@ -205,7 +211,7 @@ def run_and_evaluate(environment_name):
 	problem.print_grid()
 
 	print('== Value Iteration ==')
-	vi_policy, iters, errs = value_iteration(problem)
+	vi_policy, iters, errs, _ = value_iteration(problem)
 	print('Iterations:', iters)
 	print('Error curve:', errs, '\n')
 
@@ -215,8 +221,9 @@ def run_and_evaluate(environment_name):
 	problem.print_policy(vi_policy)
 
 	print('== Policy Iteration ==')
-	pi_policy, iters, errs = policy_iteration(problem)
+	pi_policy, iters, errs, steps = policy_iteration(problem)
 	print('Iterations:', iters)
+	print('Steps:', steps)
 	print('Error curve:', errs, '\n')
 
 	print('== PI Policy ==')
