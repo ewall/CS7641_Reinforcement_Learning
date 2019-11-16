@@ -75,14 +75,6 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 
 		super(CavemanWorldEnv, self).__init__(nS, nA, P, isd)
 
-	def render(self, mode='human'):
-		outfile = sys.stdout
-
-		if self.lastaction is not None:
-			outfile.write("state: %s --> action: %s\n" %(self.actions_text[self.lastaction], self.states_text[self.s]))
-		else:
-			outfile.write("\n")
-
 	def print_grid(self):
 		""" n/a for this problem type, but does print a newline """
 		print()
@@ -93,13 +85,23 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 			print("state: %s --> action: %s" % (s, a))
 		print()
 
+	def render(self, mode='human'):
+		outfile = sys.stdout
+
+		if self.lastaction is not None:
+			outfile.write("state: %s --> action: %s\n" %(self.actions_text[self.lastaction], self.states_text[self.s]))
+		else:
+			outfile.write("\n")
+
 	def reset(self):
 		self.s = 0
 		self.lastaction = None
 		return self.s
 
 
-# register this gym env when module is imported
+### the following should run when module is imported ###
+
+# register this gym env
 registration.register(
 	id='ewall/CavemanWorld-v1',
 	entry_point='caveman_world:CavemanWorldEnv',

@@ -60,7 +60,7 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 
 	metadata = {'render.modes': ['human', 'ansi']}
 
-	def __init__(self, map_size=30, map_prob=0.9, is_slippery=True, alt_reward=True):
+	def __init__(self, map_size=30, map_prob=0.9, is_slippery=True, alt_reward=True):  #TODO test w/o alt_reward!
 		desc = generate_random_map(size=map_size, p=map_prob)
 		self.desc = desc = np.asarray(desc, dtype='c')
 		self.nrow, self.ncol = nrow, ncol = desc.shape
@@ -132,23 +132,6 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 
 		super(FrozenLakeModified, self).__init__(nS, nA, P, isd)
 
-	def render(self, mode='human'):
-		outfile = StringIO() if mode == 'ansi' else sys.stdout
-
-		row, col = self.s // self.ncol, self.s % self.ncol
-		desc = self.desc.tolist()
-		desc = [[c.decode('utf-8') for c in line] for line in desc]
-		desc[row][col] = utils.colorize(desc[row][col], "red", highlight=True)
-		if self.lastaction is not None:
-			outfile.write("  ({})\n".format(["Left", "Down", "Right", "Up"][self.lastaction]))
-		else:
-			outfile.write("\n")
-		outfile.write("\n".join(''.join(line) for line in desc) + "\n")
-
-		if mode != 'human':
-			with closing(outfile):
-				return outfile.getvalue()
-
 	def print_grid(self):
 		""" Pretty print the current grid"""
 		print('Grid:')
@@ -168,6 +151,23 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 
 		print('\n'.join([''.join([str(cell) for cell in row]) for row in pol]))
 		print()
+
+	def render(self, mode='human'):
+		outfile = StringIO() if mode == 'ansi' else sys.stdout
+
+		row, col = self.s // self.ncol, self.s % self.ncol
+		desc = self.desc.tolist()
+		desc = [[c.decode('utf-8') for c in line] for line in desc]
+		desc[row][col] = utils.colorize(desc[row][col], "red", highlight=True)
+		if self.lastaction is not None:
+			outfile.write("  ({})\n".format(["Left", "Down", "Right", "Up"][self.lastaction]))
+		else:
+			outfile.write("\n")
+		outfile.write("\n".join(''.join(line) for line in desc) + "\n")
+
+		if mode != 'human':
+			with closing(outfile):
+				return outfile.getvalue()
 
 
 ### the following should run when module is imported ###
