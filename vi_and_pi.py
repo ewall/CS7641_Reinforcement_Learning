@@ -32,7 +32,9 @@ def timing(f):
 	return wrap
 
 
-def evaluate_rewards_and_transitions(problem, mutate=False):
+def evaluate_rewards_and_transitions(problem):
+	""" Generate R and T matrices from the problem's transitions """
+
 	# Enumerate state and action space sizes
 	num_states = problem.observation_space.n
 	num_actions = problem.action_space.n
@@ -44,7 +46,14 @@ def evaluate_rewards_and_transitions(problem, mutate=False):
 	# Iterate over states, actions, and transitions
 	for state in range(num_states):
 		for action in range(num_actions):
-			for transition in problem.env.P[state][action]:
+
+			# ignore missing/invalid actions
+			try:
+				transitions_list = problem.env.P[state][action]
+			except KeyError:
+				continue
+
+			for transition in transitions_list:
 				probability, next_state, reward, done = transition
 				R[state, action, next_state] = reward
 				T[state, action, next_state] = probability
@@ -52,10 +61,6 @@ def evaluate_rewards_and_transitions(problem, mutate=False):
 			# Normalize T across state + action axes
 			T[state, action, :] /= np.sum(T[state, action, :])
 
-	# Conditionally mutate and return
-	if mutate:
-		problem.env.R = R
-		problem.env.T = T
 	return R, T
 
 
