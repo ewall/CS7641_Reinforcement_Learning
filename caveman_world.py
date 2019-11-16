@@ -42,7 +42,6 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 				invalid/disallowed actions are omitted
 			#TODO these would be easier to read as enums, of course...
 		"""
-
 		P = {0: {0: [(0.7, 0, 0, False), (0.3, 3, -10, True)], 1: [(0.1, 3, -10, True), (0.9, 2, 1, False)]},
 		     1: {0: [(0.2, 0, 0, False), (0.8, 1, 1, False)], 2: [(0.2, 0, 0, False), (0.8, 2, 10, False)]},
 		     2: {0: [(1.0, 0, 0, False)], 2: [(1.0, 3, -10, True)]},
@@ -60,11 +59,9 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 		outfile = sys.stdout
 
 		if self.lastaction is not None:
-			outfile.write("  ({})\n".format(["Sleep", "Hunt", "Eat"][self.lastaction]))
+			outfile.write("  a: {} --> s: {}\n".format(self.actions_text[self.lastaction], self.states_text[self.s]))
 		else:
 			outfile.write("\n")
-
-		# TODO print some useful output here
 
 		with closing(outfile):
 			return outfile.getvalue()
