@@ -1,7 +1,6 @@
 # Project 4: Reinforcement Learning -- GT CS7641 Machine Learning, Fall 2019
 # Eric W. Wallace, ewallace8-at-gatech-dot-edu, GTID 903105196
 
-import random
 import sys
 import timeit
 import gym
@@ -121,67 +120,38 @@ def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6,
 	return policy, i + 1
 
 
-def print_policy(policy, problem, mapping=None, shape=(0,)):
-	pol = np.array([mapping[action] for action in policy]).reshape(shape).tolist()
-	pol[0][0] = 'S'
-	pol[-1][-1] = 'G'
-
-	for row in range(len(pol)):
-		for col in range(len(pol[0])):
-			if problem.env.desc[row][col] == b'H':
-				pol[row][col] = 'O'
-
-	print('\n'.join([''.join([str(cell) for cell in row]) for row in pol]))
-
-
-def print_grid(problem):
-	print('Grid:')
-	print('\n'.join([''.join([str(cell, "utf-8") for cell in row]) for row in problem.env.desc]))
-
-
-def run_discrete(environment_name, mapping, shape=None):
+def run_discrete(environment_name):
 	problem = gym.make(environment_name)
 	problem.seed(SEED)
 	print('== {} =='.format(environment_name))
 	print('Actions:', problem.env.action_space.n)
 	print('States:', problem.env.observation_space.n)
-	print_grid(problem)
-	print()
+	problem.print_grid()
 
 	print('== Value Iteration ==')
 	value_policy, iters = value_iteration(problem)
-	print('Iterations:', iters)
-	print()
+	print('Iterations:', iters, '\n')
 
-	if shape is not None:
-		print('== VI Policy ==')
-		print_policy(value_policy, problem, mapping, shape)
-		print()
+	print('== VI Policy ==')
+	problem.print_policy(value_policy)
 
 	print('== Policy Iteration ==')
 	policy, iters = policy_iteration(problem)
-	print('Iterations:', iters)
-	print()
+	print('Iterations:', iters, '\n')
 
-	if shape is not None:
-		print('== PI Policy ==')
-		print_policy(policy, problem, mapping, shape)
-		print()
+	print('== PI Policy ==')
+	problem.print_policy(policy)
 
 	diff = sum([abs(x - y) for x, y in zip(policy.flatten(), value_policy.flatten())])
 	if diff > 0:
-		print('Discrepancy:', diff)
-		print()
+		print('Discrepancy:', diff, '\n')
 
 	return policy
 
 
 if __name__ == "__main__":
-	# seed pseudo-RNG for reproducibility
-	random.seed(SEED)
-	np.random.seed(SEED)
 
-	# register custom OpenAI Gym environment, FrozenLakeModified
+	# register custom OpenAI Gym environments
 	sys.path.append('.')
 	gym.envs.registration.register(
 		id='ewall/FrozenLakeModified-v1',
@@ -191,7 +161,5 @@ if __name__ == "__main__":
 		reward_threshold=100.0,
 	)
 
-	# run FrozenLakeModified
-	mapping = {0: "◄", 1: "▼", 2: "►", 3: "▲"}  # {0: "←", 1: "↓", 2: "→", 3: "↑"}
-	shape = (GRID_SIZE, GRID_SIZE)
-	run_discrete('ewall/FrozenLakeModified-v1', mapping, shape)
+	# run Frozen Lake Modified (large grid problem)
+	run_discrete('ewall/FrozenLakeModified-v1')

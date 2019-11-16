@@ -62,6 +62,7 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 		self.desc = desc = np.asarray(desc, dtype='c')
 		self.nrow, self.ncol = nrow, ncol = desc.shape
 		self.reward_range = (-1, 100)
+		self.mapping = {0: "◄", 1: "▼", 2: "►", 3: "▲"}  # {0: "←", 1: "↓", 2: "→", 3: "↑"}
 
 		nA = 4
 		nS = nrow * ncol
@@ -100,7 +101,7 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 								newstate = to_s(newrow, newcol)
 								newletter = desc[newrow, newcol]
 								done = bytes(newletter) in b'GH'
-								if newletter == b'G':
+								if newletter == b'G':  #TODO is there any point in changing this if all learners use gamma?
 									rew = 100.0
 								else:
 									rew = -1.0
@@ -110,7 +111,7 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 							newstate = to_s(newrow, newcol)
 							newletter = desc[newrow, newcol]
 							done = bytes(newletter) in b'GH'
-							if newletter == b'G':
+							if newletter == b'G':  #TODO see previous reward comment
 								rew = 100.0
 							else:
 								rew = -1.0
@@ -134,3 +135,23 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 		if mode != 'human':
 			with closing(outfile):
 				return outfile.getvalue()
+
+	def print_grid(self):
+		""" Pretty print the current grid"""
+		print('Grid:')
+		print('\n'.join([''.join([str(cell, "utf-8") for cell in row]) for row in self.desc]))
+		print()
+
+	def print_policy(self, policy):
+		""" Pretty print a given policy """
+		pol = np.array([self.mapping[action] for action in policy]).reshape(self.desc.shape).tolist()
+		pol[0][0] = 'S'
+		pol[-1][-1] = 'G'
+
+		for row in range(len(pol)):
+			for col in range(len(pol[0])):
+				if self.desc[row][col] == b'H':
+					pol[row][col] = 'O'
+
+		print('\n'.join([''.join([str(cell) for cell in row]) for row in pol]))
+		print()
