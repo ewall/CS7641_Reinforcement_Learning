@@ -7,7 +7,7 @@ import numpy as np
 from gym.envs import registration
 from gym.envs.toy_text import discrete
 
-MAX_ITER = 1000
+MAX_ITER = 10 ** 6
 
 
 class CavemanWorldEnv(discrete.DiscreteEnv):
@@ -100,6 +100,5 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 registration.register(
 	id='ewall/CavemanWorld-v1',
 	entry_point='caveman_world:CavemanWorldEnv',
-	max_episode_steps=MAX_ITER,
-	reward_threshold=100.0,
+	max_episode_steps = MAX_ITER,
 )

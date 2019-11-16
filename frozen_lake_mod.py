@@ -10,11 +10,12 @@ from six import StringIO  # , b
 from gym import utils
 from gym.envs import registration
 from gym.envs.toy_text import discrete
-from gym.envs.toy_text.frozen_lake import generate_random_map, LEFT, DOWN, RIGHT, UP, MAPS
+from gym.envs.toy_text.frozen_lake import generate_random_map, LEFT, DOWN, RIGHT, UP
 
-
-GRID_SIZE = 20
-MAX_ITER = 1000
+FROZEN_PROB = 0.9
+GRID_SIZE = 30
+MAX_ITER = 10 ** 6
+SLIPPERY = True
 
 
 ### Code Credit: the following is only slightly modified from the original source:
@@ -166,11 +167,11 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 		print('\n'.join([''.join([str(cell) for cell in row]) for row in pol]))
 		print()
 
+
 # register this gym env when module is imported
 registration.register(
 	id='ewall/FrozenLakeModified-v1',
 	entry_point='frozen_lake_mod:FrozenLakeModified',
-	kwargs={'map_size': GRID_SIZE, 'map_prob': 0.9, 'is_slippery' : False},
+	kwargs={'map_size': GRID_SIZE, 'map_prob': FROZEN_PROB, 'is_slippery': SLIPPERY},
 	max_episode_steps=MAX_ITER,
-	reward_threshold=100.0,
 )
