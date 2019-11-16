@@ -1,6 +1,7 @@
 # Project 4: Reinforcement Learning -- GT CS7641 Machine Learning, Fall 2019
 # Eric W. Wallace, ewallace8-at-gatech-dot-edu, GTID 903105196
 
+import random
 import sys
 from contextlib import closing
 
@@ -16,6 +17,7 @@ FROZEN_PROB = 0.9
 GRID_SIZE = 30
 MAX_ITER = 10 ** 6
 SLIPPERY = True
+SEED = 1
 
 
 ### Code Credit: the following is only slightly modified from the original source:
@@ -168,7 +170,13 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 		print()
 
 
-# register this gym env when module is imported
+### the following should run when module is imported ###
+
+# seed pseudo-RNG for reproducibility
+random.seed(SEED)
+np.random.seed(SEED)
+
+# register this gym env
 registration.register(
 	id='ewall/FrozenLakeModified-v1',
 	entry_point='frozen_lake_mod:FrozenLakeModified',
