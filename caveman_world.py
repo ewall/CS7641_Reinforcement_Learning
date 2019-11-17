@@ -63,7 +63,7 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 		                 A['hunt']: [(1.0, S['dead'], 0, True)],
 		                 A['eat']: [(1.0, S['dead'], 0, True)]}}
 
-		isd = np.zeros(nS)  # initial state description doesn't matter for this problem, but is required by super()
+		isd = np.array((1.0, 0.0, 0.0, 0.0))  # initial state description: what states can we start from?
 
 		self.actions_text = {0: "sleep", 1: "hunt", 2: "eat"}
 		self.states_text = {0: "hungry", 1: "got food", 2: "full", 3: "dead"}
@@ -91,11 +91,6 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 			outfile.write("state: %s --> action: %s\n" %(self.actions_text[self.lastaction], self.states_text[self.s]))
 		else:
 			outfile.write("\n")
-
-	def reset(self):
-		self.s = 0
-		self.lastaction = None
-		return self.s
 
 
 ### the following should run when module is imported ###
