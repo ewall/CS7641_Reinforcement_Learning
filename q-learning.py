@@ -8,8 +8,7 @@ import numpy as np
 
 import caveman_world  # registers 'ewall/CavemanWorld-v1' env
 import frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' env
-from vi_and_pi import evaluate_policy, timing
-
+from vi_and_pi import diff_policies, evaluate_policy, timing
 
 MAX_ITER = 10 ** 3
 SEED = 1
@@ -43,7 +42,7 @@ class QLearner(object):
 		"""
 
 		# sanity check
-		inputs = {'alpha':alpha, 'gamma':gamma, 'rar_start':rar_start, 'rar_decay':rar_decay}
+		inputs = {'alpha': alpha, 'gamma': gamma, 'rar_start': rar_start, 'rar_decay': rar_decay}
 		for key in inputs:
 			if inputs[key] < 0 or inputs[key] > 1:
 				raise ValueError(key + " value must be between 0.0 and 1.0.")
@@ -75,7 +74,6 @@ class QLearner(object):
 
 	def reset(self, s=0):
 		""" Reset to initial state and clear counters"""
-		#TODO clear counters?
 		return self.query_and_set_state(s)
 
 	def query_and_set_state(self, s):
@@ -97,20 +95,28 @@ class QLearner(object):
 
 	@timing
 	def run(self, env, max_iterations=MAX_ITER):
-		""" TBD """
+		""" Iterate thru episodes with gym env until stopped """
 
-		q_variation, epoch_rewards = [], []
+		q_variation, episode_rewards = [], []
+		optimal_achieved = False
 
-		action = self.reset()  # set the initial state and get first action
+		total_reward = 0
+		initial_state = env.reset()
+		action = self.reset(initial_state)  # set the initial state and get first action
 		for i in range(max_iterations):
-			total_reward = 0
+			#total_reward = 0
 			state, reward, done, _ = env.step(action)
 			total_reward += reward
 
+			if self.verbose:
+				print("   done=", done)
+
 			if done:
-				epoch_rewards.append(total_reward)
-				s = env.reset()
-				self.reset(s)
+				episode_rewards.append(total_reward)
+				total_reward = 0
+				initial_state = env.reset()
+				self.reset(initial_state)
+				continue
 
 			prev_q = self.q[self.s, self.a]  # for variation
 			action = self.update_and_query(state, reward)
@@ -118,9 +124,20 @@ class QLearner(object):
 			q_var = abs(prev_q - self.q[self.s, self.a])
 			q_variation.append(q_var)
 
-			#TODO WHEN DO WE STOP?!?
+			# check if optimal policy already achieved
+			if hasattr(env, 'optimal_policy') and optimal_achieved == False:
+				current_policy = self.get_policy()
+				diff = diff_policies(current_policy, env.optimal_policy)
+				if diff == 0:
+					optimal_achieved = True
+					print("Optimal policy found on iteration", str(i + 1))
 
-		return self.get_policy(), i + 1, q_variation, epoch_rewards
+		# TODO WHEN DO WE STOP?!?
+
+		if self.verbose:
+			print("Q:\n", self.q)
+
+		return self.get_policy(), i + 1, q_variation, episode_rewards
 
 	def update_and_query(self, s_prime, r):
 		"""
@@ -135,7 +152,7 @@ class QLearner(object):
 
 		# calculate Q value
 		prev_q = self.q[self.s, self.a]
-		future_q =  r + self.gamma * self.q[s_prime, np.argmax(self.q[s_prime, :])]
+		future_q = r + self.gamma * self.q[s_prime, np.argmax(self.q[s_prime, :])]
 		self.q[self.s, self.a] = (1 - self.alpha) * prev_q + (self.alpha * future_q)
 
 		if self.verbose:
@@ -172,42 +189,42 @@ def run_and_evaluate(env_name):
 	s = env.reset()
 	print('== {} =='.format(env_name))
 
-	#TODO loop thru different settings for plotting
+	# TODO loop thru different settings for plotting
 
 	# build Q-learner
 	ql = QLearner(num_states=env.observation_space.n,
-	             num_actions=env.action_space.n,
-	             alpha=0.9,
-	             gamma=0.9,
-	             rar_start=1.0,
-	             rar_decay=0.005)
+	              num_actions=env.action_space.n,
+	              alpha=0.9,
+	              gamma=0.9,
+	              rar_start=1.0,
+	              rar_decay=0.005,
+	              verbose=False)
 	ql.reset(s)
 
 	# run learner
-	policy, iters, q_variation, epoch_rewards = ql.run(env)
+	policy, iters, q_variation, episode_rewards = ql.run(env)
 
-	print('== Q-Learning ==')
+	print('\n== Q-Learning ==')
 	print('Iterations:', iters)
-	print('Variation curve:', q_variation)
-	print('Rewards curve:', epoch_rewards, '\n')
+	print('Variations:', q_variation)
+	print('Rewards curve:', episode_rewards, '\n')
 
 	print('== QL Policy ==')
-	print(policy)
 	env.print_policy(policy)
 
 	score = evaluate_policy(env, policy)
-	print('Average total reward', score)
+	print('Average total reward', score, '\n')
 
 	return policy
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
 	# seed pseudo-RNG for reproducibility
 	random.seed(SEED)
 	np.random.seed(SEED)
 
 	# run Frozen Lake Modified (large grid problem)
-	#run_and_evaluate('ewall/FrozenLakeModified-v1')
+	run_and_evaluate('ewall/FrozenLakeModified-v1')
 
 	# # run Caveman's World (simple problem)
 	run_and_evaluate('ewall/CavemanWorld-v1')
