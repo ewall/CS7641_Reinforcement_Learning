@@ -7,7 +7,7 @@ import gym
 import numpy as np
 
 import caveman_world  # registers 'ewall/CavemanWorld-v1' env
-import frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' env
+import frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alternate reward) envs
 from vi_and_pi import diff_policies, evaluate_policy, timing
 
 MAX_ITER = 10 ** 3
@@ -211,10 +211,9 @@ def run_and_evaluate(env_name):
 
 	print('== QL Policy ==')
 	env.print_policy(policy)
-
-	ql_score, ql_steps = evaluate_policy(env, policy)
-	print('Average total reward', ql_score)
-	print('Average steps', ql_steps, '\n')
+	ql_scores, ql_steps = evaluate_policy(env, policy)
+	print('Average total reward:', np.mean(ql_scores), 'max reward:', np.max(ql_scores))
+	print('Average steps:', np.mean(ql_steps), 'max steps:', np.max(ql_steps), '\n')
 
 	return policy
 
@@ -225,7 +224,7 @@ if __name__ == "__main__":
 	np.random.seed(SEED)
 
 	# run Frozen Lake Modified (large grid problem)
-	run_and_evaluate('ewall/FrozenLakeModified-v1')
+	run_and_evaluate('ewall/FrozenLakeModified-v2')
 
-	# # run Caveman's World (simple problem)
+	# run Caveman's World (simple problem)
 	run_and_evaluate('ewall/CavemanWorld-v1')

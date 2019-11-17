@@ -8,7 +8,7 @@ import gym
 import numpy as np
 
 import caveman_world  # registers 'ewall/CavemanWorld-v1' env
-import frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' env
+import frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alternate reward) envs
 
 
 MAX_ITER = 1000
@@ -71,7 +71,7 @@ def get_r_and_t(problem):
 
 
 @timing
-def value_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6, delta=10 ** -3):
+def value_iteration(problem, gamma=0.9, delta=10 ** -3, max_iterations=10 ** 6, R=None, T=None):
 	""" Runs Value Iteration on a gym problem """
 
 	value_fn = np.zeros(problem.observation_space.n)
@@ -112,7 +112,7 @@ def value_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6, 
 
 
 @timing
-def policy_iteration(problem, R=None, T=None, gamma=0.9, max_iterations=10 ** 6, delta=10 ** -3):
+def policy_iteration(problem, gamma=0.9, delta=10 ** -3, max_iterations=10 ** 6, R=None, T=None):
 	""" Runs Policy Iteration on a gym problem """
 
 	def encode_policy(policy, shape):
@@ -198,7 +198,7 @@ def evaluate_policy(env, policy, gamma=1.0, n=1000):
 		score, step = run_episode(env, policy, gamma, False)
 		scores.append(score)
 		steps.append(step)
-	return np.mean(scores), np.mean(steps)
+	return scores, steps
 
 
 def diff_policies(policy1, policy2):
@@ -220,10 +220,10 @@ def run_and_evaluate(environment_name):
 	print('Error curve:', errs, '\n')
 
 	print('== VI Policy ==')
-	vi_score, vi_steps = evaluate_policy(problem, vi_policy)
-	print('Average total reward', vi_score)
-	print('Average steps', vi_steps)
 	problem.print_policy(vi_policy)
+	vi_scores, vi_steps = evaluate_policy(problem, vi_policy)
+	print('Average total reward:', np.mean(vi_scores), 'max reward:', np.max(vi_scores))
+	print('Average steps:', np.mean(vi_steps), 'max steps:', np.max(vi_steps), '\n')
 
 	print('== Policy Iteration ==')
 	pi_policy, iters, errs, steps = policy_iteration(problem)
@@ -232,21 +232,13 @@ def run_and_evaluate(environment_name):
 	print('Error curve:', errs, '\n')
 
 	print('== PI Policy ==')
-	pi_score, pi_steps = evaluate_policy(problem, pi_policy)
-	print('Average total reward', pi_score)
-	print('Average steps', pi_steps)
 	problem.print_policy(pi_policy)
+	pi_scores, pi_steps = evaluate_policy(problem, pi_policy)
+	print('Average total reward:', np.mean(pi_scores), 'max reward:', np.max(pi_scores))
+	print('Average steps:', np.mean(pi_steps), 'max steps:', np.max(pi_steps), '\n')
 
 	diff = diff_policies(vi_policy, pi_policy)
-	print('Discrepancy:', diff)
-	if diff > 0:
-		if vi_score > pi_score:
-			print('Best score: VI')
-		elif pi_score > vi_score:
-			print('Best score: PI')
-		else:
-			print('Tied score')
-	print()
+	print('Discrepancy:', diff, '\n')
 
 	return pi_policy
 
@@ -258,7 +250,7 @@ if __name__ == "__main__":
 	np.random.seed(SEED)
 
 	# run Frozen Lake Modified (large grid problem)
-	run_and_evaluate('ewall/FrozenLakeModified-v1')
+	run_and_evaluate('ewall/FrozenLakeModified-v2')
 
-	# # # run Caveman's World (simple problem)
-	# run_and_evaluate('ewall/CavemanWorld-v1')
+	# run Caveman's World (simple problem)
+	run_and_evaluate('ewall/CavemanWorld-v1')
