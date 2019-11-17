@@ -22,6 +22,7 @@ class QLearner(object):
 	             random_explorer=None,
 	             alpha=0.2,
 	             gamma=0.9,
+	             optimistic_init=None,
 	             verbose=False):
 		"""
 		Initialize QLearner object.
@@ -29,7 +30,8 @@ class QLearner(object):
 		:param num_actions: Total number of possible actions; integer.
 		:param random_explorer: Object for randomized exploration/exploitation choices.
 		:param alpha: Learning rate; float between 0.0 and 1.0.
-		:param gamma: Discount rate; float between 0.0 and 1.0.
+		:param gamma: Discount rate: float between 0.0 and 1.0
+		:param optimistic_init: Initialize Q for optimism-in-the-face-of-uncertainty; float.
 		:param verbose: Enable debugging printouts.
 		"""
 
@@ -47,13 +49,17 @@ class QLearner(object):
 			self.random_explorer = eps_decay()
 		self.alpha = alpha
 		self.gamma = gamma
-		self.rar_decay = eps_decay
 		self.verbose = verbose
 
 		# set the stage
 		self.s = None  # previous state
 		self.a = None  # previous action
-		self.q = np.zeros((num_states, num_actions))  # Q table
+
+		# the all-important Q table
+		if optimistic_init is not None:
+			self.q = np.full((num_states, num_actions), float(optimistic_init))
+		else:
+			self.q = np.zeros((num_states, num_actions))
 
 	def get_policy(self):
 		""" Return current best policy """

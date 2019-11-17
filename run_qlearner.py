@@ -7,7 +7,7 @@ import env_frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alte
 from run_vi_and_pi import evaluate_policy
 from qlearner import *
 
-MAX_ITER = 10 ** 5
+MAX_ITER = 10 ** 6
 SEED = 1
 
 
@@ -21,14 +21,15 @@ def run_and_evaluate(env_name, print_grids=True):
 	print('== {} =='.format(env_name))
 
 	# build Q-learner
-	# ee = greedy()
+	ee = greedy()
 	# ee = eps_greedy(0.8)
-	ee = eps_decay(decay=0.00005, verbose=True)
+	# ee = eps_decay(decay=0.00005, verbose=True)
 	ql = QLearner(num_states=env.observation_space.n,
 	              num_actions=env.action_space.n,
 	              random_explorer=ee,
 	              alpha=0.9,
 	              gamma=0.9,
+	              optimistic_init=0.1,
 	              verbose=False)
 	ql.reset(s)
 
