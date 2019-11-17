@@ -7,28 +7,33 @@ import env_frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alte
 from run_vi_and_pi import evaluate_policy
 from qlearner import *
 
+MAX_ITER = 10 ** 5
 SEED = 1
 
 
 def run_and_evaluate(env_name, print_grids=True):
+
+	#TODO add max_iterations to vary by problem?
+
 	env = gym.make(env_name)
 	env.seed(SEED)
 	s = env.reset()
 	print('== {} =='.format(env_name))
 
-	# TODO loop thru different settings for plotting
-
 	# build Q-learner
+	# ee = greedy()
+	# ee = eps_greedy(0.8)
+	ee = eps_decay(decay=0.00005, verbose=True)
 	ql = QLearner(num_states=env.observation_space.n,
 	              num_actions=env.action_space.n,
+	              random_explorer=ee,
 	              alpha=0.9,
 	              gamma=0.9,
-	              eps_decay=0.005,
 	              verbose=False)
 	ql.reset(s)
 
 	# run learner
-	policy, iters, q_variation, episode_rewards = ql.run(env)
+	policy, iters, q_variation, episode_rewards = ql.run(env, max_iterations=MAX_ITER)
 
 	print('\n== Q-Learning ==')
 	print('Iterations:', iters)
@@ -43,6 +48,9 @@ def run_and_evaluate(env_name, print_grids=True):
 	print('Average steps:', np.mean(ql_steps), 'max steps:', np.max(ql_steps), '\n')
 
 	return policy
+
+
+	#TODO loop thru different settings for plotting
 
 
 if __name__ == "__main__":

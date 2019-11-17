@@ -5,7 +5,7 @@ import random
 import numpy as np
 from run_vi_and_pi import diff_policies, timing
 
-MAX_ITER = 10 ** 3
+MAX_ITER = 10 ** 6
 
 
 class QLearner(object):
@@ -177,17 +177,26 @@ class greedy(object):
 
 class eps_greedy(object):
 	""" Exploit """
-	def __init__(self, epsilon):
+	def __init__(self, epsilon, verbose=False):
+		if epsilon < 0 or epsilon > 1:
+			raise ValueError("epsilon value must be between 0.0 and 1.0.")
 		self.epsilon = epsilon
+		self.verbose = verbose
 
 	def eval(self):
 		pick_randomly = True if random.random() <= self.epsilon else False
+
+		if self.verbose:
+			print("   random?=", pick_randomly)
+
 		return pick_randomly
 
 
 class eps_decay(object):
 	""" Epsilon-greedy with exponential decay """
 	def __init__(self, epsilon=1.0, decay=0.005, minimum=0.0, verbose=False):
+		if epsilon < 0 or epsilon > 1:
+			raise ValueError("epsilon value must be between 0.0 and 1.0.")
 		self.epsilon = self.start = epsilon
 		self.decay = decay
 		self.minimum = minimum
@@ -198,7 +207,7 @@ class eps_decay(object):
 		pick_randomly = True if random.random() <= self.epsilon else False
 
 		if self.verbose:
-			print("   eps=", self.epsilon, "at t=", self.t)
+			print("   random?=", pick_randomly, "eps=", self.epsilon, "at t=", self.t)
 
 		# decay the random action rate for next time
 		self.epsilon = 1.0 * np.exp(-self.start * self.decay * self.t)

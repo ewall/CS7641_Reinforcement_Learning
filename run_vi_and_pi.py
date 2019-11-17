@@ -34,9 +34,9 @@ SEED = 1
 
 def timing(f):
 	""" Simple decorator to time a function's execution """
-	def wrap(*args):
+	def wrap(*args, **kwargs):
 		start_time = timeit.default_timer()
-		ret = f(*args)
+		ret = f(*args, **kwargs)
 		elapsed = timeit.default_timer() - start_time
 		print('%s function took %0.5f seconds' % (f.__name__, elapsed))
 		return ret
