@@ -14,7 +14,7 @@ from gym.envs.toy_text import discrete
 from gym.envs.toy_text.frozen_lake import generate_random_map, LEFT, DOWN, RIGHT, UP
 
 FROZEN_PROB = 0.9
-GRID_SIZE = 35
+GRID_SIZE = 30
 MAX_ITER = 10 ** 6
 SLIPPERY = True
 SEED = 1
