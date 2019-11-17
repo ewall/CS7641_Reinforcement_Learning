@@ -212,8 +212,9 @@ def run_and_evaluate(env_name):
 	print('== QL Policy ==')
 	env.print_policy(policy)
 
-	score = evaluate_policy(env, policy)
-	print('Average total reward', score, '\n')
+	ql_score, ql_steps = evaluate_policy(env, policy)
+	print('Average total reward', ql_score)
+	print('Average steps', ql_steps, '\n')
 
 	return policy
 

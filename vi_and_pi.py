@@ -188,13 +188,17 @@ def run_episode(env, policy, gamma=1.0, render=False):
 		step_idx += 1
 		if done:
 			break
-	return total_reward
+	return total_reward, step_idx
 
 
 def evaluate_policy(env, policy, gamma=1.0, n=1000):
-	""" Run a policy multiple times and return the average total reward """
-	scores = [run_episode(env, policy, gamma, False) for _ in range(n)]
-	return np.mean(scores)
+	""" Run a policy multiple times and return the average total reward and average steps taken """
+	scores, steps = [], []
+	for _ in range(n):
+		score, step = run_episode(env, policy, gamma, False)
+		scores.append(score)
+		steps.append(step)
+	return np.mean(scores), np.mean(steps)
 
 
 def diff_policies(policy1, policy2):
@@ -216,8 +220,9 @@ def run_and_evaluate(environment_name):
 	print('Error curve:', errs, '\n')
 
 	print('== VI Policy ==')
-	vi_score = evaluate_policy(problem, vi_policy)
+	vi_score, vi_steps = evaluate_policy(problem, vi_policy)
 	print('Average total reward', vi_score)
+	print('Average steps', vi_steps)
 	problem.print_policy(vi_policy)
 
 	print('== Policy Iteration ==')
@@ -227,8 +232,9 @@ def run_and_evaluate(environment_name):
 	print('Error curve:', errs, '\n')
 
 	print('== PI Policy ==')
-	pi_score = evaluate_policy(problem, pi_policy)
+	pi_score, pi_steps = evaluate_policy(problem, pi_policy)
 	print('Average total reward', pi_score)
+	print('Average steps', pi_steps)
 	problem.print_policy(pi_policy)
 
 	diff = diff_policies(vi_policy, pi_policy)
@@ -254,5 +260,5 @@ if __name__ == "__main__":
 	# run Frozen Lake Modified (large grid problem)
 	run_and_evaluate('ewall/FrozenLakeModified-v1')
 
-	# # run Caveman's World (simple problem)
-	run_and_evaluate('ewall/CavemanWorld-v1')
+	# # # run Caveman's World (simple problem)
+	# run_and_evaluate('ewall/CavemanWorld-v1')
