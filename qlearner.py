@@ -17,30 +17,34 @@ class QLearner(object):
 	#   Availability: only via Georgia Tech course CS7646
 
 	def __init__(self,
-	             num_states=100,
-	             num_actions=4,
+	             num_states,
+	             num_actions,
+	             random_explorer=None,
 	             alpha=0.2,
 	             gamma=0.9,
-	             eps_decay=0.005,
 	             verbose=False):
 		"""
 		Initialize QLearner object.
 		:param num_states: Total number of possible states; integer.
 		:param num_actions: Total number of possible actions; integer.
+		:param random_explorer: Object for randomized exploration/exploitation choices.
 		:param alpha: Learning rate; float between 0.0 and 1.0.
 		:param gamma: Discount rate; float between 0.0 and 1.0.
-		:param eps_decay: Random action decay rate (exponential); float between 0.0 and 1.0.
 		:param verbose: Enable debugging printouts.
 		"""
 
 		# sanity check
-		inputs = {'alpha': alpha, 'gamma': gamma, 'eps_decay': eps_decay}
+		inputs = {'alpha': alpha, 'gamma': gamma}
 		for key in inputs:
 			if inputs[key] < 0 or inputs[key] > 1:
 				raise ValueError(key + " value must be between 0.0 and 1.0.")
 
 		# save config
 		self.num_actions = num_actions
+		if random_explorer is not None:
+			self.random_explorer = random_explorer
+		else:
+			self.random_explorer = eps_decay()
 		self.alpha = alpha
 		self.gamma = gamma
 		self.rar_decay = eps_decay
@@ -50,10 +54,6 @@ class QLearner(object):
 		self.s = None  # previous state
 		self.a = None  # previous action
 		self.q = np.zeros((num_states, num_actions))  # Q table
-
-		# exponential decay
-		self.random_action_rate = self.rar_start = 1.0
-		self.t = 1  # counter runs over lifetime of the object, does not reset with each episode
 
 	def get_policy(self):
 		""" Return current best policy """
@@ -150,22 +150,14 @@ class QLearner(object):
 			print("   prev_q:", prev_q, "future_q:", future_q, "q_value:", self.q[self.s, self.a])
 
 		# decide if action will be random
-		if random.random() <= self.random_action_rate:
-			# yes, we're returning a random action
-			action = random.randint(0, self.num_actions - 1)
+		if self.random_explorer.eval():
+			action = random.randint(0, self.num_actions - 1)  # random exploration
+			if self.verbose:
+				print("   a =", action, "(random)")
 		else:
-			# query Q table for the action
-			action = np.argmax(self.q[s_prime, :])
-		if self.verbose:
-			print("   a =", action)
-
-		# decay the random action rate for next time
-		self.random_action_rate = 1.0 * np.exp(-self.rar_start * self.rar_decay * self.t)
-		self.t += 1
-		if self.random_action_rate < 0:
-			self.random_action_rate = 0.0
-		if self.verbose:
-			print("   rar=", self.random_action_rate, "at t=", self.t)
+			action = np.argmax(self.q[s_prime, :])  # exploit Q table
+			if self.verbose:
+				print("   a =", action, "(exploiting)")
 
 		# store S' and A' for next time
 		self.s = s_prime
@@ -174,6 +166,48 @@ class QLearner(object):
 		return action
 
 
+class greedy(object):
+	""" Greedy exploitation only """
+	def __init__(self):
+		pass
+
+	def eval(self):
+		return True
+
+
+class eps_greedy(object):
+	""" Exploit """
+	def __init__(self, epsilon):
+		self.epsilon = epsilon
+
+	def eval(self):
+		pick_randomly = True if random.random() <= self.epsilon else False
+		return pick_randomly
+
+
+class eps_decay(object):
+	""" Epsilon-greedy with exponential decay """
+	def __init__(self, epsilon=1.0, decay=0.005, minimum=0.0, verbose=False):
+		self.epsilon = self.start = epsilon
+		self.decay = decay
+		self.minimum = minimum
+		self.verbose = verbose
+		self.t = 0
+
+	def eval(self):
+		pick_randomly = True if random.random() <= self.epsilon else False
+
+		if self.verbose:
+			print("   eps=", self.epsilon, "at t=", self.t)
+
+		# decay the random action rate for next time
+		self.epsilon = 1.0 * np.exp(-self.start * self.decay * self.t)
+		if self.epsilon < self.minimum:
+			self.epsilon = self.minimum
+		self.t += 1
+
+		return pick_randomly
+
+
 if __name__ == "__main__":
 	pass
-

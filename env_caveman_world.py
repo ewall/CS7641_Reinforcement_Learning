@@ -97,6 +97,6 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 # register this gym env
 registration.register(
 	id='ewall/CavemanWorld-v1',
-	entry_point='caveman_world:CavemanWorldEnv',
+	entry_point='env_caveman_world:CavemanWorldEnv',
 	max_episode_steps = MAX_ITER,
 )

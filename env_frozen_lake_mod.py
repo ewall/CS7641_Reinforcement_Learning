@@ -176,13 +176,13 @@ np.random.seed(SEED)
 # register this gym env
 registration.register(
 	id='ewall/FrozenLakeModified-v1',
-	entry_point='frozen_lake_mod:FrozenLakeModified',
+	entry_point='env_frozen_lake_mod:FrozenLakeModified',
 	kwargs={'map_size': GRID_SIZE, 'map_prob': FROZEN_PROB, 'is_slippery': SLIPPERY, 'alt_reward': False},
 	max_episode_steps=MAX_ITER,
 )
 registration.register(
 	id='ewall/FrozenLakeModified-v2',
-	entry_point='frozen_lake_mod:FrozenLakeModified',
+	entry_point='env_frozen_lake_mod:FrozenLakeModified',
 	kwargs={'map_size': GRID_SIZE, 'map_prob': FROZEN_PROB, 'is_slippery': SLIPPERY, 'alt_reward': True},
 	max_episode_steps=MAX_ITER,
 )
