@@ -1,11 +1,14 @@
 # Project 4: Reinforcement Learning -- GT CS7641 Machine Learning, Fall 2019
 # Eric W. Wallace, ewallace8-at-gatech-dot-edu, GTID 903105196
 
+import matplotlib.pyplot as plt
+import matplotlib.ticker as plticker
 import random
 import timeit
 
 import gym
 import numpy as np
+import pandas as pd
 
 import caveman_world  # registers 'ewall/CavemanWorld-v1' env
 import frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alternate reward) envs
@@ -249,17 +252,80 @@ def run_and_evaluate(environment_name, print_grids=True, gamma=0.9, delta=10 ** 
 	return pi_policy
 
 
+def run_gamma_comparison(environment_name, gamma_list=None, plot=False):
+	assert gamma_list is not None, "must provide list of gammas to test"
+
+	problem = gym.make(environment_name)
+	problem.seed(SEED)
+	vi_rewards, pi_rewards, pol_diffs  = [], [], []
+
+	print('== Gamma Comparison: {} ==\n'.format(environment_name))
+
+	for gamma in gamma_list:
+		print('-- Gamma: {} --'.format(gamma))
+
+		vi_policy, iters, errs, _ = value_iteration(problem, gamma)
+		vi_scores, _ = evaluate_policy(problem, vi_policy)
+		score = np.mean(vi_scores)
+		vi_rewards.append(score)
+		print('VI mean reward:', score)
+
+		pi_policy, iters, errs, steps = policy_iteration(problem, gamma)
+		pi_scores, _ = evaluate_policy(problem, pi_policy)
+		score = np.mean(pi_scores)
+		pi_rewards.append(score)
+		print('PI mean reward:', score)
+
+		diff = diff_policies(vi_policy, pi_policy)
+		pol_diffs.append(diff)
+		print('Discrepancy:', diff, '\n')
+
+	if plot:
+		# create dataframe
+		df = pd.DataFrame(list(zip(vi_rewards, pi_rewards)), index=gamma_list, columns=('VI', 'PI'))
+		df.index.title = "gamma"
+
+		# create rewards plot
+		ax = plt.gca()
+		df.plot(kind='line', ax=ax)
+		loc = plticker.MultipleLocator(base=0.01)  # ticks at regular intervals
+		ax.xaxis.set_major_locator(loc)
+		plt.xlabel('gamma values')
+		plt.ylabel('mean reward')
+		plt.title('Frozen Lake v1: Compare VI & PI across gamma values')
+		plt.savefig("plots/vi_and_pi_gamma_rewards.png", bbox_inches='tight')
+		plt.show()
+		plt.close()
+
+		# plot differences
+		df = pd.DataFrame(pol_diffs, index=gamma_list)
+		df.plot(kind='line')
+		ax.xaxis.set_major_locator(loc)
+		plt.xlabel('gamma values')
+		plt.ylabel('output policy differences')
+		plt.title('Frozen Lake v1: Comparing VI & PI policies')
+		plt.savefig("plots/vi_and_pi_gamma_diffs.png", bbox_inches='tight')
+		plt.show()
+		plt.close()
+
+	return vi_rewards, pi_rewards, pol_diffs
+
+
 if __name__ == "__main__":
 
 	# seed pseudo-RNG for reproducibility
 	random.seed(SEED)
 	np.random.seed(SEED)
 
-	# run Caveman's World (simple problem)
-	run_and_evaluate('ewall/CavemanWorld-v1')
+	# # run Caveman's World (simple problem)
+	# run_and_evaluate('ewall/CavemanWorld-v1')
+	#
+	# # run Frozen Lake Modified with Alternate Rewards (large grid problem)
+	# run_and_evaluate('ewall/FrozenLakeModified-v2')
+	#
+	# # run Frozen Lake with Original Rewards (large grid problem), adjust gammas
+	# run_and_evaluate('ewall/FrozenLakeModified-v1', print_grids=False, gamma=0.999)
 
-	# run Frozen Lake Modified with Alternate Rewards (large grid problem)
-	run_and_evaluate('ewall/FrozenLakeModified-v2')
-
-	# run Frozen Lake with Original Rewards (large grid problem), adjust gammas
-	run_and_evaluate('ewall/FrozenLakeModified-v1', print_grids=False, gamma=0.999)
+	# run Frozen Lake with Original Rewards, comparing different gamma values
+	gammas = [0.9, 0.95, 0.99, 0.995, 0.999, 0.9995]
+	vi_rewards, pi_rewards, pol_diffs = run_gamma_comparison('ewall/FrozenLakeModified-v1', gammas, plot=True)
