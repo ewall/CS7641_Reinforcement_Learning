@@ -75,14 +75,13 @@ class CavemanWorldEnv(discrete.DiscreteEnv):
 		super(CavemanWorldEnv, self).__init__(nS, nA, P, isd)
 
 	def print_grid(self):
-		""" n/a for this problem type, but does print a newline """
-		print()
+		""" n/a for this problem type """
+		pass
 
 	def print_policy(self, policy):
 		""" Pretty print given policy """
 		for s, a in zip(self.states_text.values(), [self.actions_text[action] for action in policy]):
-			print("state: %s --> action: %s" % (s, a))
-		print()
+			print("@ state: %s --> action: %s" % (s, a))
 
 	def render(self, mode='human'):
 		outfile = sys.stdout

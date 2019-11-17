@@ -135,7 +135,6 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 		""" Pretty print the current grid"""
 		print('Grid:')
 		print('\n'.join([''.join([str(cell, "utf-8") for cell in row]) for row in self.desc]))
-		print()
 
 	def print_policy(self, policy):
 		""" Pretty print a given policy """
