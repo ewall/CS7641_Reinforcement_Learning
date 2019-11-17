@@ -3,8 +3,7 @@
 
 import random
 import numpy as np
-from vi_and_pi import diff_policies, timing
-
+from run_vi_and_pi import diff_policies, timing
 
 MAX_ITER = 10 ** 3
 

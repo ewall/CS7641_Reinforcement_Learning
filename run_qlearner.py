@@ -1,14 +1,11 @@
 # Project 4: Reinforcement Learning -- GT CS7641 Machine Learning, Fall 2019
 # Eric W. Wallace, ewallace8-at-gatech-dot-edu, GTID 903105196
 
-#import random
 import gym
-#import numpy as np
-import caveman_world  # registers 'ewall/CavemanWorld-v1' env
-import frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alternate reward) envs
-from vi_and_pi import evaluate_policy
+import env_caveman_world  # registers 'ewall/CavemanWorld-v1' env
+import env_frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alternate reward) envs
+from run_vi_and_pi import evaluate_policy
 from qlearner import *
-
 
 SEED = 1
 

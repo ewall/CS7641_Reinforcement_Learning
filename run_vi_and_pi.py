@@ -10,8 +10,8 @@ import gym
 import numpy as np
 import pandas as pd
 
-import caveman_world  # registers 'ewall/CavemanWorld-v1' env
-import frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alternate reward) envs
+import env_caveman_world  # registers 'ewall/CavemanWorld-v1' env
+import env_frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alternate reward) envs
 
 
 MAX_ITER = 1000
