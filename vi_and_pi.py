@@ -206,33 +206,39 @@ def diff_policies(policy1, policy2):
 	return (policy1 != policy2).flatten().sum()
 
 
-def run_and_evaluate(environment_name):
+def run_and_evaluate(environment_name, print_grids=True, gamma=0.9, delta=10 ** -3, max_iterations=10 ** 6):
 	problem = gym.make(environment_name)
 	problem.seed(SEED)
 	print('== {} =='.format(environment_name))
 	print('Actions:', problem.env.action_space.n)
 	print('States:', problem.env.observation_space.n)
-	problem.print_grid()
+	if print_grids:
+		problem.print_grid()
+	print()
 
 	print('== Value Iteration ==')
-	vi_policy, iters, errs, _ = value_iteration(problem)
+	print('gamma:', gamma, 'delta:', delta, 'max_iterations:', max_iterations)
+	vi_policy, iters, errs, _ = value_iteration(problem, gamma, delta, max_iterations)
 	print('Iterations:', iters)
 	print('Error curve:', errs, '\n')
 
 	print('== VI Policy ==')
-	problem.print_policy(vi_policy)
+	if print_grids:
+		problem.print_policy(vi_policy)
 	vi_scores, vi_steps = evaluate_policy(problem, vi_policy)
 	print('Average total reward:', np.mean(vi_scores), 'max reward:', np.max(vi_scores))
 	print('Average steps:', np.mean(vi_steps), 'max steps:', np.max(vi_steps), '\n')
 
 	print('== Policy Iteration ==')
-	pi_policy, iters, errs, steps = policy_iteration(problem)
+	print('gamma:', gamma, 'delta:', delta, 'max_iterations:', max_iterations)
+	pi_policy, iters, errs, steps = policy_iteration(problem, gamma, delta, max_iterations)
 	print('Iterations:', iters)
 	print('Steps:', steps)
 	print('Error curve:', errs, '\n')
 
 	print('== PI Policy ==')
-	problem.print_policy(pi_policy)
+	if print_grids:
+		problem.print_policy(pi_policy)
 	pi_scores, pi_steps = evaluate_policy(problem, pi_policy)
 	print('Average total reward:', np.mean(pi_scores), 'max reward:', np.max(pi_scores))
 	print('Average steps:', np.mean(pi_steps), 'max steps:', np.max(pi_steps), '\n')
@@ -249,8 +255,11 @@ if __name__ == "__main__":
 	random.seed(SEED)
 	np.random.seed(SEED)
 
-	# run Frozen Lake Modified (large grid problem)
-	run_and_evaluate('ewall/FrozenLakeModified-v2')
-
 	# run Caveman's World (simple problem)
 	run_and_evaluate('ewall/CavemanWorld-v1')
+
+	# run Frozen Lake Modified with Alternate Rewards (large grid problem)
+	run_and_evaluate('ewall/FrozenLakeModified-v2')
+
+	# run Frozen Lake with Original Rewards (large grid problem), adjust gammas
+	run_and_evaluate('ewall/FrozenLakeModified-v1', print_grids=False, gamma=0.999)
