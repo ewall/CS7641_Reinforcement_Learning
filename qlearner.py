@@ -2,16 +2,11 @@
 # Eric W. Wallace, ewallace8-at-gatech-dot-edu, GTID 903105196
 
 import random
-
-import gym
 import numpy as np
+from vi_and_pi import diff_policies, timing
 
-import caveman_world  # registers 'ewall/CavemanWorld-v1' env
-import frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alternate reward) envs
-from vi_and_pi import diff_policies, evaluate_policy, timing
 
 MAX_ITER = 10 ** 3
-SEED = 1
 
 
 class QLearner(object):
@@ -27,8 +22,7 @@ class QLearner(object):
 	             num_actions=4,
 	             alpha=0.2,
 	             gamma=0.9,
-	             rar_start=1.0,
-	             rar_decay=0.005,
+	             eps_decay=0.005,
 	             verbose=False):
 		"""
 		Initialize QLearner object.
@@ -36,13 +30,12 @@ class QLearner(object):
 		:param num_actions: Total number of possible actions; integer.
 		:param alpha: Learning rate; float between 0.0 and 1.0.
 		:param gamma: Discount rate; float between 0.0 and 1.0.
-		:param rar_start: Initial random action rate; float between 0.0 and 1.0.
-		:param rar_decay: Random action decay rate; float between 0.0 and 1.0.
+		:param eps_decay: Random action decay rate (exponential); float between 0.0 and 1.0.
 		:param verbose: Enable debugging printouts.
 		"""
 
 		# sanity check
-		inputs = {'alpha': alpha, 'gamma': gamma, 'rar_start': rar_start, 'rar_decay': rar_decay}
+		inputs = {'alpha': alpha, 'gamma': gamma, 'eps_decay': eps_decay}
 		for key in inputs:
 			if inputs[key] < 0 or inputs[key] > 1:
 				raise ValueError(key + " value must be between 0.0 and 1.0.")
@@ -51,8 +44,7 @@ class QLearner(object):
 		self.num_actions = num_actions
 		self.alpha = alpha
 		self.gamma = gamma
-		self.rar_start = rar_start
-		self.rar_decay = rar_decay
+		self.rar_decay = eps_decay
 		self.verbose = verbose
 
 		# set the stage
@@ -61,8 +53,8 @@ class QLearner(object):
 		self.q = np.zeros((num_states, num_actions))  # Q table
 
 		# exponential decay
-		self.random_action_rate = rar_start
-		self.t = 1  # counter runs over lifetime of the object, not reset with each episode
+		self.random_action_rate = self.rar_start = 1.0
+		self.t = 1  # counter runs over lifetime of the object, does not reset with each episode
 
 	def get_policy(self):
 		""" Return current best policy """
@@ -183,48 +175,6 @@ class QLearner(object):
 		return action
 
 
-def run_and_evaluate(env_name):
-	env = gym.make(env_name)
-	env.seed(SEED)
-	s = env.reset()
-	print('== {} =='.format(env_name))
-
-	# TODO loop thru different settings for plotting
-
-	# build Q-learner
-	ql = QLearner(num_states=env.observation_space.n,
-	              num_actions=env.action_space.n,
-	              alpha=0.9,
-	              gamma=0.9,
-	              rar_start=1.0,
-	              rar_decay=0.005,
-	              verbose=False)
-	ql.reset(s)
-
-	# run learner
-	policy, iters, q_variation, episode_rewards = ql.run(env)
-
-	print('\n== Q-Learning ==')
-	print('Iterations:', iters)
-	print('Variations:', q_variation)
-	print('Rewards curve:', episode_rewards, '\n')
-
-	print('== QL Policy ==')
-	env.print_policy(policy)
-	ql_scores, ql_steps = evaluate_policy(env, policy)
-	print('Average total reward:', np.mean(ql_scores), 'max reward:', np.max(ql_scores))
-	print('Average steps:', np.mean(ql_steps), 'max steps:', np.max(ql_steps), '\n')
-
-	return policy
-
-
 if __name__ == "__main__":
-	# seed pseudo-RNG for reproducibility
-	random.seed(SEED)
-	np.random.seed(SEED)
+	pass
 
-	# run Frozen Lake Modified (large grid problem)
-	run_and_evaluate('ewall/FrozenLakeModified-v2')
-
-	# run Caveman's World (simple problem)
-	run_and_evaluate('ewall/CavemanWorld-v1')
