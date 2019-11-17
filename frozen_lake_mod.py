@@ -6,7 +6,7 @@ import sys
 from contextlib import closing
 
 import numpy as np
-from six import StringIO  # , b
+from six import StringIO, b
 
 from gym import utils
 from gym.envs import registration
@@ -14,7 +14,7 @@ from gym.envs.toy_text import discrete
 from gym.envs.toy_text.frozen_lake import generate_random_map, LEFT, DOWN, RIGHT, UP
 
 FROZEN_PROB = 0.9
-GRID_SIZE = 30
+GRID_SIZE = 35
 MAX_ITER = 10 ** 6
 SLIPPERY = True
 SEED = 1
@@ -51,20 +51,25 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 	H : hole, fall to your doom
 	G : goal, where the frisbee is located
 
-	The episode ends when you reach the goal or fall in a hole.
+	The episode ends when you reach the goal (receiving a delayed reward of 1.0) or fall in a hole.
 
-	* REWARDS HAVE BEEN CHANGED *
+	----
 
-	You receive a reward of 100 if you reach the goal, and -1 otherwise. (This incentivizes taking the shortest path.)
+	ewall/FrozenLakeModified-v2
+
+	In version 2, an alternate reward structure is enabled to incentivize taking the shortest path.
+	In this structure, you receive a reward of 100 if you reach the goal, and -1 otherwise.
 	"""
 
 	metadata = {'render.modes': ['human', 'ansi']}
 
-	def __init__(self, map_size=30, map_prob=0.9, is_slippery=True, alt_reward=True):  #TODO test w/o alt_reward!
+	def __init__(self, map_size=30, map_prob=0.9, is_slippery=True, alt_reward=True):
 		desc = generate_random_map(size=map_size, p=map_prob)
 		self.desc = desc = np.asarray(desc, dtype='c')
 		self.nrow, self.ncol = nrow, ncol = desc.shape
-		self.mapping = {0: "◄", 1: "▼", 2: "►", 3: "▲"}  # {0: "←", 1: "↓", 2: "→", 3: "↑"}
+		self.actions_symbols = {0: "◄", 1: "▼", 2: "►", 3: "▲"}
+		self.actions_symbols2 = {0: "←", 1: "↓", 2: "→", 3: "↑"}
+		self.actions_text = {0: "left", 1: "down", 2: "right", 3: "up"}
 
 		if alt_reward:
 			self.reward_range = (-1, 100)
@@ -108,26 +113,20 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 								newstate = to_s(newrow, newcol)
 								newletter = desc[newrow, newcol]
 								done = bytes(newletter) in b'GH'
-								if alt_reward:
-									if newletter == b'G':
-										rew = 100.0
-									else:
-										rew = -1.0
+								if newletter == b'G':
+									rew = 100.0 if alt_reward else 1.0
 								else:
-									rew = float(newletter == b'G')
+									rew = -1.0 if alt_reward else 0.0
 								li.append((1.0 / 3.0, newstate, rew, done))
 						else:
 							newrow, newcol = inc(row, col, a)
 							newstate = to_s(newrow, newcol)
 							newletter = desc[newrow, newcol]
 							done = bytes(newletter) in b'GH'
-							if alt_reward:
-								if newletter == b'G':
-									rew = 100.0
-								else:
-									rew = -1.0
+							if newletter == b'G':
+								rew = 100.0 if alt_reward else 1.0
 							else:
-								rew = float(newletter == b'G')
+								rew = -1.0 if alt_reward else 0.0
 							li.append((1.0, newstate, rew, done))
 
 		super(FrozenLakeModified, self).__init__(nS, nA, P, isd)
@@ -140,7 +139,7 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 
 	def print_policy(self, policy):
 		""" Pretty print a given policy """
-		pol = np.array([self.mapping[action] for action in policy]).reshape(self.desc.shape).tolist()
+		pol = np.array([self.actions_symbols[action] for action in policy]).reshape(self.desc.shape).tolist()
 		# pol[0][0] = 'S'
 		pol[-1][-1] = 'G'
 
@@ -150,7 +149,6 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 					pol[row][col] = 'O'
 
 		print('\n'.join([''.join([str(cell) for cell in row]) for row in pol]))
-		print()
 
 	def render(self, mode='human'):
 		outfile = StringIO() if mode == 'ansi' else sys.stdout
@@ -160,7 +158,7 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 		desc = [[c.decode('utf-8') for c in line] for line in desc]
 		desc[row][col] = utils.colorize(desc[row][col], "red", highlight=True)
 		if self.lastaction is not None:
-			outfile.write("  ({})\n".format(["Left", "Down", "Right", "Up"][self.lastaction]))
+			outfile.write("  ({})\n".format(self.actions_text[self.lastaction]))
 		else:
 			outfile.write("\n")
 		outfile.write("\n".join(''.join(line) for line in desc) + "\n")
@@ -180,6 +178,12 @@ np.random.seed(SEED)
 registration.register(
 	id='ewall/FrozenLakeModified-v1',
 	entry_point='frozen_lake_mod:FrozenLakeModified',
-	kwargs={'map_size': GRID_SIZE, 'map_prob': FROZEN_PROB, 'is_slippery': SLIPPERY},
+	kwargs={'map_size': GRID_SIZE, 'map_prob': FROZEN_PROB, 'is_slippery': SLIPPERY, 'alt_reward': False},
+	max_episode_steps=MAX_ITER,
+)
+registration.register(
+	id='ewall/FrozenLakeModified-v2',
+	entry_point='frozen_lake_mod:FrozenLakeModified',
+	kwargs={'map_size': GRID_SIZE, 'map_prob': FROZEN_PROB, 'is_slippery': SLIPPERY, 'alt_reward': True},
 	max_episode_steps=MAX_ITER,
 )
