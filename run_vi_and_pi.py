@@ -209,7 +209,13 @@ def diff_policies(policy1, policy2):
 	return (policy1 != policy2).flatten().sum()
 
 
-def run_and_evaluate(environment_name, print_grids=True, gamma=0.9, delta=10 ** -3, max_iterations=10 ** 6):
+def run_and_evaluate(environment_name,
+                     env_nickname="MDP",
+                     print_grids=True,
+                     gamma=0.9,
+                     delta=10 ** -3,
+                     max_iterations=10 ** 6,
+                     plot=False):
 	problem = gym.make(environment_name)
 	problem.seed(SEED)
 	print('== {} =='.format(environment_name))
@@ -221,9 +227,9 @@ def run_and_evaluate(environment_name, print_grids=True, gamma=0.9, delta=10 ** 
 
 	print('== Value Iteration ==')
 	print('gamma:', gamma, 'delta:', delta, 'max_iterations:', max_iterations)
-	vi_policy, iters, errs, _ = value_iteration(problem, gamma, delta, max_iterations)
-	print('Iterations:', iters)
-	print('Error curve:', errs, '\n')
+	vi_policy, vi_iters, vi_errs, _ = value_iteration(problem, gamma, delta, max_iterations)
+	print('Iterations:', vi_iters)
+	print('Error curve:', vi_errs, '\n')
 
 	print('== VI Policy ==')
 	if print_grids:
@@ -234,10 +240,10 @@ def run_and_evaluate(environment_name, print_grids=True, gamma=0.9, delta=10 ** 
 
 	print('== Policy Iteration ==')
 	print('gamma:', gamma, 'delta:', delta, 'max_iterations:', max_iterations)
-	pi_policy, iters, errs, steps = policy_iteration(problem, gamma, delta, max_iterations)
-	print('Iterations:', iters)
-	print('Steps:', steps)
-	print('Error curve:', errs, '\n')
+	pi_policy, pi_iters, pi_errs, pi_steps = policy_iteration(problem, gamma, delta, max_iterations)
+	print('Iterations:', pi_iters)
+	print('Steps:', pi_steps)
+	print('Error curve:', pi_errs, '\n')
 
 	print('== PI Policy ==')
 	if print_grids:
@@ -248,6 +254,18 @@ def run_and_evaluate(environment_name, print_grids=True, gamma=0.9, delta=10 ** 
 
 	diff = diff_policies(vi_policy, pi_policy)
 	print('Discrepancy:', diff, '\n')
+
+	if plot:
+		df_err = pd.DataFrame(list(zip(vi_errs, pi_errs)), columns=('VI', 'PI'))
+		df_err.index.title = "iterations"
+		ax = plt.gca()
+		df_err.plot(kind='line', ax=ax)
+		plt.xlabel('iterations')
+		plt.ylabel('error (delta from previous utility value)')
+		plt.title(env_nickname + ': Compare VI & PI error curves')
+		plt.savefig('plots/vi_and_pi_' + env_nickname.replace(' ', '') + 'error_curve.png', bbox_inches='tight')
+		plt.show()
+		plt.close()
 
 	return pi_policy
 
@@ -321,14 +339,14 @@ if __name__ == "__main__":
 	np.random.seed(SEED)
 
 	# run Caveman's World (simple problem)
-	run_and_evaluate('ewall/CavemanWorld-v1')
+	run_and_evaluate('ewall/CavemanWorld-v1', env_nickname="Caveman World", delta=10 ** -1, plot=True)
 
-	# run Frozen Lake Modified with Alternate Rewards (large grid problem)
-	run_and_evaluate('ewall/FrozenLakeModified-v2')
-
-	# run Frozen Lake with Original Rewards (large grid problem), adjust gammas
-	run_and_evaluate('ewall/FrozenLakeModified-v1', print_grids=False, gamma=0.999)
-
-	# run Frozen Lake with Original Rewards, comparing different gamma values
-	gammas = [0.9, 0.95, 0.99, 0.995, 0.999, 0.9995]
-	vi_rewards, pi_rewards, pol_diffs = run_gamma_comparison('ewall/FrozenLakeModified-v1', gammas)
+	# # run Frozen Lake Modified with Alternate Rewards (large grid problem)
+	# run_and_evaluate('ewall/FrozenLakeModified-v2', env_nickname="Frozen Lake", plot=True)
+	#
+	# # run Frozen Lake with Original Rewards (large grid problem), adjust gammas
+	# run_and_evaluate('ewall/FrozenLakeModified-v1', print_grids=False, gamma=0.999)
+	#
+	# # run Frozen Lake with Original Rewards, comparing different gamma values
+	# gammas = [0.9, 0.95, 0.99, 0.995, 0.999, 0.9995]
+	# vi_rewards, pi_rewards, pol_diffs = run_gamma_comparison('ewall/FrozenLakeModified-v1', gammas)
