@@ -2,7 +2,6 @@
 # Eric W. Wallace, ewallace8-at-gatech-dot-edu, GTID 903105196
 
 import matplotlib.pyplot as plt
-import matplotlib.ticker as plticker
 import random
 import timeit
 
@@ -16,7 +15,7 @@ import env_frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alte
 
 MAX_ITER = 10 ** 3
 SEED = 1
-
+SHOW_PLOTS = False
 
 ### Code Credit -- multiple functions on this page were modified from:
 #   Title: OpenAI Gym Solutions
@@ -229,28 +228,32 @@ def run_and_evaluate(environment_name,
 	print('gamma:', gamma, 'delta:', delta, 'max_iterations:', max_iterations)
 	vi_policy, vi_iters, vi_errs, _ = value_iteration(problem, gamma, delta, max_iterations)
 	print('Iterations:', vi_iters)
-	print('Error curve:', vi_errs, '\n')
+	if not plot:
+		print('Error curve:', vi_errs)
+	print()
 
 	print('== VI Policy ==')
 	if print_grids:
 		problem.print_policy(vi_policy)
-	vi_scores, vi_steps = evaluate_policy(problem, vi_policy)
+	vi_scores, vi_actions = evaluate_policy(problem, vi_policy)
 	print('Average total reward:', np.mean(vi_scores), 'max reward:', np.max(vi_scores))
-	print('Average steps:', np.mean(vi_steps), 'max steps:', np.max(vi_steps), '\n')
+	print('Average actions taken:', np.mean(vi_actions), 'max actions:', np.max(vi_actions), '\n')
 
 	print('== Policy Iteration ==')
 	print('gamma:', gamma, 'delta:', delta, 'max_iterations:', max_iterations)
-	pi_policy, pi_iters, pi_errs, pi_steps = policy_iteration(problem, gamma, delta, max_iterations)
+	pi_policy, pi_iters, pi_errs, pi_backups = policy_iteration(problem, gamma, delta, max_iterations)
 	print('Iterations:', pi_iters)
-	print('Steps:', pi_steps)
-	print('Error curve:', pi_errs, '\n')
+	print('Backups:', pi_backups)
+	if not plot:
+		print('Error curve:', pi_errs)
+	print()
 
 	print('== PI Policy ==')
 	if print_grids:
 		problem.print_policy(pi_policy)
-	pi_scores, pi_steps = evaluate_policy(problem, pi_policy)
+	pi_scores, pi_actions = evaluate_policy(problem, pi_policy)
 	print('Average total reward:', np.mean(pi_scores), 'max reward:', np.max(pi_scores))
-	print('Average steps:', np.mean(pi_steps), 'max steps:', np.max(pi_steps), '\n')
+	print('Average actions taken:', np.mean(pi_actions), 'max actions:', np.max(pi_actions), '\n')
 
 	diff = diff_policies(vi_policy, pi_policy)
 	print('Discrepancy:', diff, '\n')
@@ -263,14 +266,15 @@ def run_and_evaluate(environment_name,
 		plt.xlabel('iterations')
 		plt.ylabel('error (delta from previous utility value)')
 		plt.title(env_nickname + ': Compare VI & PI error curves')
-		plt.savefig('plots/vi_and_pi_' + env_nickname.replace(' ', '') + 'error_curve.png', bbox_inches='tight')
-		plt.show()
+		plt.savefig('plots/VIPI_' + env_nickname.replace(' ', '') + '_error_curve.png', bbox_inches='tight')
+		if SHOW_PLOTS:
+			plt.show()
 		plt.close()
 
 	return pi_policy
 
 
-def run_gamma_comparison(environment_name, gamma_list=None, plot=True):
+def run_gamma_comparison(environment_name, env_nickname="MDP", gamma_list=(0.7, 0.8, 0.9), plot=True):
 	assert gamma_list is not None, "must provide list of gammas to test"
 
 	problem = gym.make(environment_name)
@@ -306,27 +310,25 @@ def run_gamma_comparison(environment_name, gamma_list=None, plot=True):
 		# create rewards plot
 		ax = plt.gca()
 		df.plot(kind='line', ax=ax)
-		loc = plticker.MultipleLocator(base=0.01)  # ticks at regular intervals
-		ax.xaxis.set_major_locator(loc)
 		plt.xlabel('gamma values')
 		plt.ylabel('mean reward')
-		plt.title('Frozen Lake v1: Compare VI & PI across gamma values')
-		plt.savefig("plots/vi_and_pi_gamma_rewards.png", bbox_inches='tight')
-		# plt.show()
+		plt.title(env_nickname + ': Compare VI & PI across gamma values')
+		plt.savefig('plots/VIPI_' + env_nickname.replace(' ', '') + '_gamma_rewards.png', bbox_inches='tight')
+		if SHOW_PLOTS:
+			plt.show()
 		plt.close()
 
 		# plot differences
 		ax = plt.gca()
 		df = pd.DataFrame(pol_diffs, index=gamma_list)
 		df.plot(kind='line', ax=ax)
-		ax.xaxis.set_major_locator(loc)
 		ax.get_legend().remove()
-		#ax.legend().set_visible(False)
 		plt.xlabel('gamma values')
 		plt.ylabel('differences between output policies')
-		plt.title('Frozen Lake v1: Comparing VI & PI policies')
-		plt.savefig("plots/vi_and_pi_gamma_diffs.png", bbox_inches='tight')
-		# plt.show()
+		plt.title(env_nickname + ': Comparing VI & PI policies')
+		plt.savefig('plots/VIPI_' + env_nickname.replace(' ', '') + '_gamma_diffs.png', bbox_inches='tight')
+		if SHOW_PLOTS:
+			plt.show()
 		plt.close()
 
 	return vi_rewards, pi_rewards, pol_diffs
@@ -339,7 +341,14 @@ if __name__ == "__main__":
 	np.random.seed(SEED)
 
 	# run Caveman's World (simple problem)
-	run_and_evaluate('ewall/CavemanWorld-v1', env_nickname="Caveman World", delta=10 ** -1, plot=True)
+	run_and_evaluate('ewall/CavemanWorld-v1', env_nickname="Caveman World", delta=1.0, plot=True)
+
+	# run Caveman with a single iteration
+	run_and_evaluate('ewall/CavemanWorld-v1', env_nickname="Caveman World", max_iterations=1, plot=False)
+
+	# run Caveman comparing different gamma values
+	gammas = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+	vi_rewards, pi_rewards, pol_diffs = run_gamma_comparison('ewall/CavemanWorld-v1', 'Caveman World', gammas)
 
 	# # run Frozen Lake Modified with Alternate Rewards (large grid problem)
 	# run_and_evaluate('ewall/FrozenLakeModified-v2', env_nickname="Frozen Lake", plot=True)
