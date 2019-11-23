@@ -2,6 +2,7 @@
 # Eric W. Wallace, ewallace8-at-gatech-dot-edu, GTID 903105196
 
 import random
+from math import log
 import numpy as np
 from run_vi_and_pi import diff_policies, timing
 
@@ -220,6 +221,22 @@ class eps_decay(object):
 		if self.epsilon < self.minimum:
 			self.epsilon = self.minimum
 		self.t += 1
+
+		return pick_randomly
+
+
+class greedy_decay(object):
+	""" Greedy exploitation with logarithmic decay based on iterations """
+	def __init__(self, verbose=False):
+		self.verbose = verbose
+		self.t = 0
+
+	def eval(self):
+		pick_randomly = np.random.random() >= (1 - (1 / log(self.t + 2)))
+		self.t += 1
+
+		if self.verbose:
+			print("   random?=", pick_randomly, "at t=", self.t)
 
 		return pick_randomly
 
