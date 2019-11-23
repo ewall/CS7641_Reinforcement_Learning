@@ -73,7 +73,7 @@ def get_r_and_t(problem):
 
 
 @timing
-def value_iteration(problem, gamma=0.9, delta=10 ** -3, max_iterations=10 ** 6, R=None, T=None):
+def value_iteration(problem, gamma=0.9, delta=10 ** -3, max_iterations=MAX_ITER, R=None, T=None):
 	""" Runs Value Iteration on a gym problem """
 
 	value_fn = np.zeros(problem.observation_space.n)
@@ -114,7 +114,7 @@ def value_iteration(problem, gamma=0.9, delta=10 ** -3, max_iterations=10 ** 6, 
 
 
 @timing
-def policy_iteration(problem, gamma=0.9, delta=10 ** -3, max_iterations=10 ** 6, R=None, T=None):
+def policy_iteration(problem, gamma=0.9, delta=10 ** -3, max_iterations=MAX_ITER, R=None, T=None):
 	""" Runs Policy Iteration on a gym problem """
 
 	def encode_policy(policy, shape):
@@ -213,8 +213,8 @@ def run_and_evaluate(environment_name,
                      print_grids=True,
                      gamma=0.9,
                      delta=10 ** -3,
-                     max_iterations=10 ** 6,
-                     plot=False):
+                     max_iterations=10 ** 3,
+                     plot=True):
 	problem = gym.make(environment_name)
 	problem.seed(SEED)
 	print('== {} =='.format(environment_name))
@@ -286,13 +286,13 @@ def run_gamma_comparison(environment_name, env_nickname="MDP", gamma_list=(0.7, 
 	for gamma in gamma_list:
 		print('-- Gamma: {} --'.format(gamma))
 
-		vi_policy, iters, errs, _ = value_iteration(problem, gamma)
+		vi_policy, _, _, _ = value_iteration(problem, gamma=gamma)
 		vi_scores, _ = evaluate_policy(problem, vi_policy)
 		score = np.mean(vi_scores)
 		vi_rewards.append(score)
 		print('VI mean reward:', score)
 
-		pi_policy, iters, errs, steps = policy_iteration(problem, gamma)
+		pi_policy, _, _, _ = policy_iteration(problem, gamma=gamma)
 		pi_scores, _ = evaluate_policy(problem, pi_policy)
 		score = np.mean(pi_scores)
 		pi_rewards.append(score)
@@ -334,28 +334,103 @@ def run_gamma_comparison(environment_name, env_nickname="MDP", gamma_list=(0.7, 
 	return vi_rewards, pi_rewards, pol_diffs
 
 
+def run_delta_comparison(environment_name, env_nickname="MDP", delta_list=(1.0, 0.1, 0.1), plot=True):
+	assert delta_list is not None, "must provide list of deltas to test"
+
+	problem = gym.make(environment_name)
+	problem.seed(SEED)
+	vi_rewards, pi_rewards, pol_diffs  = [], [], []
+
+	print('== Delta Comparison: {} ==\n'.format(environment_name))
+
+	for delta in delta_list:
+		print('-- Delta: {} --'.format(delta))
+
+		vi_policy, _, _, _ = value_iteration(problem, delta=delta)
+		vi_scores, _ = evaluate_policy(problem, vi_policy)
+		score = np.mean(vi_scores)
+		vi_rewards.append(score)
+		print('VI mean reward:', score)
+
+		pi_policy, _, _, _ = policy_iteration(problem, delta=delta)
+		pi_scores, _ = evaluate_policy(problem, pi_policy)
+		score = np.mean(pi_scores)
+		pi_rewards.append(score)
+		print('PI mean reward:', score)
+
+		diff = diff_policies(vi_policy, pi_policy)
+		pol_diffs.append(diff)
+		print('Discrepancy:', diff, '\n')
+
+	if plot:
+		# create dataframe
+		df = pd.DataFrame(list(zip(vi_rewards, pi_rewards)), index=delta_list, columns=('VI', 'PI'))
+		df.index.title = "delta"
+
+		# create rewards plot
+		ax = plt.gca()
+		df.plot(kind='line', ax=ax)
+		plt.xlabel('delta values')
+		plt.ylabel('mean reward')
+		plt.title(env_nickname + ': Compare VI & PI across delta values')
+		plt.savefig('plots/VIPI_' + env_nickname.replace(' ', '') + '_delta_rewards.png', bbox_inches='tight')
+		if SHOW_PLOTS:
+			plt.show()
+		plt.close()
+
+		# plot differences
+		ax = plt.gca()
+		df = pd.DataFrame(pol_diffs, index=delta_list)
+		df.plot(kind='line', ax=ax)
+		ax.get_legend().remove()
+		plt.xlabel('delta values')
+		plt.ylabel('differences between output policies')
+		plt.title(env_nickname + ': Comparing VI & PI policies')
+		plt.savefig('plots/VIPI_' + env_nickname.replace(' ', '') + '_delta_diffs.png', bbox_inches='tight')
+		if SHOW_PLOTS:
+			plt.show()
+		plt.close()
+
+	return vi_rewards, pi_rewards, pol_diffs
+
+
 if __name__ == "__main__":
 
 	# seed pseudo-RNG for reproducibility
 	random.seed(SEED)
 	np.random.seed(SEED)
 
+	### CAVEMAN WORLD ###
+
 	# run Caveman's World (simple problem)
-	run_and_evaluate('ewall/CavemanWorld-v1', env_nickname="Caveman World", delta=1.0, plot=True)
+	run_and_evaluate('ewall/CavemanWorld-v1', env_nickname='Caveman World (delta=1.0)', delta=1.0)
 
 	# run Caveman with a single iteration
-	run_and_evaluate('ewall/CavemanWorld-v1', env_nickname="Caveman World", max_iterations=1, plot=False)
+	run_and_evaluate('ewall/CavemanWorld-v1', env_nickname='Caveman World (one iteration)', max_iterations=1, plot=False)
 
 	# run Caveman comparing different gamma values
-	gammas = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+	gammas = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.85, 0.9, 0.95]
 	vi_rewards, pi_rewards, pol_diffs = run_gamma_comparison('ewall/CavemanWorld-v1', 'Caveman World', gammas)
 
-	# # run Frozen Lake Modified with Alternate Rewards (large grid problem)
-	# run_and_evaluate('ewall/FrozenLakeModified-v2', env_nickname="Frozen Lake", plot=True)
-	#
-	# # run Frozen Lake with Original Rewards (large grid problem), adjust gammas
-	# run_and_evaluate('ewall/FrozenLakeModified-v1', print_grids=False, gamma=0.999)
-	#
-	# # run Frozen Lake with Original Rewards, comparing different gamma values
-	# gammas = [0.9, 0.95, 0.99, 0.995, 0.999, 0.9995]
-	# vi_rewards, pi_rewards, pol_diffs = run_gamma_comparison('ewall/FrozenLakeModified-v1', gammas)
+	### FROZEN LAKE ###
+
+	# run Frozen Lake with Original Rewards, comparing different gamma values
+	gammas = [0.9, 0.95, 0.99, 0.995, 0.999, 0.9995]
+	vi_rewards_orig, pi_rewards_orig, pol_diffs_orig = run_gamma_comparison('ewall/FrozenLakeModified-v1',
+	                                                                        'Frozen Lake (Original Rewards)',
+	                                                                        gammas)
+
+	# run Frozen Lake with Alternate Rewards, comparing different gamma values
+	vi_rewards_alt, pi_rewards_alt, pol_diff_alt = run_gamma_comparison('ewall/FrozenLakeModified-v2',
+	                                                                    'Frozen Lake (Alternate Rewards)',
+	                                                                    gammas)
+
+	# # run Frozen Lake (Alt), comparing different delta values
+	# deltas = [1.0, 0.1, 0.01, 0.001, 0.0001]
+	# vi_rewards_d, pi_rewards_d, pol_diffs_d = run_delta_comparison('ewall/FrozenLakeModified-v2', 'Frozen Lake', deltas)
+
+	# "best" Frozen Lake (Orig)
+	run_and_evaluate('ewall/FrozenLakeModified-v1', 'Frozen Lake (Original Reward)', gamma=0.9995, delta=0.0001)
+
+	# "best" Frozen Lake (Alt)
+	run_and_evaluate('ewall/FrozenLakeModified-v2', 'Frozen Lake (Alternate Reward)', gamma=0.9995, delta=0.0001)
