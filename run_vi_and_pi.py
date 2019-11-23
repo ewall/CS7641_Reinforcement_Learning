@@ -14,7 +14,7 @@ import env_caveman_world  # registers 'ewall/CavemanWorld-v1' env
 import env_frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alternate reward) envs
 
 
-MAX_ITER = 1000
+MAX_ITER = 10 ** 3
 SEED = 1
 
 
@@ -252,7 +252,7 @@ def run_and_evaluate(environment_name, print_grids=True, gamma=0.9, delta=10 ** 
 	return pi_policy
 
 
-def run_gamma_comparison(environment_name, gamma_list=None, plot=False):
+def run_gamma_comparison(environment_name, gamma_list=None, plot=True):
 	assert gamma_list is not None, "must provide list of gammas to test"
 
 	problem = gym.make(environment_name)
@@ -294,18 +294,21 @@ def run_gamma_comparison(environment_name, gamma_list=None, plot=False):
 		plt.ylabel('mean reward')
 		plt.title('Frozen Lake v1: Compare VI & PI across gamma values')
 		plt.savefig("plots/vi_and_pi_gamma_rewards.png", bbox_inches='tight')
-		plt.show()
+		# plt.show()
 		plt.close()
 
 		# plot differences
+		ax = plt.gca()
 		df = pd.DataFrame(pol_diffs, index=gamma_list)
-		df.plot(kind='line')
+		df.plot(kind='line', ax=ax)
 		ax.xaxis.set_major_locator(loc)
+		ax.get_legend().remove()
+		#ax.legend().set_visible(False)
 		plt.xlabel('gamma values')
-		plt.ylabel('output policy differences')
+		plt.ylabel('differences between output policies')
 		plt.title('Frozen Lake v1: Comparing VI & PI policies')
 		plt.savefig("plots/vi_and_pi_gamma_diffs.png", bbox_inches='tight')
-		plt.show()
+		# plt.show()
 		plt.close()
 
 	return vi_rewards, pi_rewards, pol_diffs
@@ -317,15 +320,15 @@ if __name__ == "__main__":
 	random.seed(SEED)
 	np.random.seed(SEED)
 
-	# # run Caveman's World (simple problem)
-	# run_and_evaluate('ewall/CavemanWorld-v1')
-	#
-	# # run Frozen Lake Modified with Alternate Rewards (large grid problem)
-	# run_and_evaluate('ewall/FrozenLakeModified-v2')
-	#
-	# # run Frozen Lake with Original Rewards (large grid problem), adjust gammas
-	# run_and_evaluate('ewall/FrozenLakeModified-v1', print_grids=False, gamma=0.999)
+	# run Caveman's World (simple problem)
+	run_and_evaluate('ewall/CavemanWorld-v1')
+
+	# run Frozen Lake Modified with Alternate Rewards (large grid problem)
+	run_and_evaluate('ewall/FrozenLakeModified-v2')
+
+	# run Frozen Lake with Original Rewards (large grid problem), adjust gammas
+	run_and_evaluate('ewall/FrozenLakeModified-v1', print_grids=False, gamma=0.999)
 
 	# run Frozen Lake with Original Rewards, comparing different gamma values
 	gammas = [0.9, 0.95, 0.99, 0.995, 0.999, 0.9995]
-	vi_rewards, pi_rewards, pol_diffs = run_gamma_comparison('ewall/FrozenLakeModified-v1', gammas, plot=True)
+	vi_rewards, pi_rewards, pol_diffs = run_gamma_comparison('ewall/FrozenLakeModified-v1', gammas)
