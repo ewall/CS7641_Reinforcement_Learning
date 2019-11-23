@@ -14,7 +14,7 @@ from gym.envs.toy_text import discrete
 from gym.envs.toy_text.frozen_lake import generate_random_map, LEFT, DOWN, RIGHT, UP
 
 FROZEN_PROB = 0.9
-GRID_SIZE = 30
+GRID_SIZE = 25
 MAX_ITER = 10 ** 7
 SLIPPERY = True
 SEED = 1
@@ -169,6 +169,11 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 		if mode != 'human':
 			with closing(outfile):
 				return outfile.getvalue()
+
+	def reset(self):
+		self.s = 0  # always start from the same square
+		self.lastaction = None
+		return self.s
 
 
 ### the following should run when module is imported ###
