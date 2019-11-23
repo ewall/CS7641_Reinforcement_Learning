@@ -14,8 +14,8 @@ from gym.envs.toy_text import discrete
 from gym.envs.toy_text.frozen_lake import generate_random_map, LEFT, DOWN, RIGHT, UP
 
 FROZEN_PROB = 0.9
-GRID_SIZE = 30
-MAX_ITER = 10 ** 6
+GRID_SIZE = 25
+MAX_ITER = 10 ** 7
 SLIPPERY = True
 SEED = 1
 
@@ -58,7 +58,7 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 	ewall/FrozenLakeModified-v2
 
 	In version 2, an alternate reward structure is enabled to incentivize taking the shortest path.
-	In this structure, you receive a reward of 100 if you reach the goal, and -1 otherwise.
+	In this structure, you receive a reward of 100 if you reach the goal, -100 if you fall in a hole, and -1 otherwise.
 	"""
 
 	metadata = {'render.modes': ['human', 'ansi']}
@@ -72,7 +72,7 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 		self.actions_text = {0: "left", 1: "down", 2: "right", 3: "up"}
 
 		if alt_reward:
-			self.reward_range = (-1, 100)
+			self.reward_range = (-100, 100)
 		else:
 			self.reward_range = (0, 1)
 
@@ -115,6 +115,8 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 								done = bytes(newletter) in b'GH'
 								if newletter == b'G':
 									rew = 100.0 if alt_reward else 1.0
+								elif newletter == b'H':
+									rew = -100.0 if alt_reward else 0.0
 								else:
 									rew = -1.0 if alt_reward else 0.0
 								li.append((1.0 / 3.0, newstate, rew, done))
@@ -125,6 +127,8 @@ class FrozenLakeModified(discrete.DiscreteEnv):
 							done = bytes(newletter) in b'GH'
 							if newletter == b'G':
 								rew = 100.0 if alt_reward else 1.0
+							elif newletter == b'H':
+								rew = -100.0 if alt_reward else 0.0
 							else:
 								rew = -1.0 if alt_reward else 0.0
 							li.append((1.0, newstate, rew, done))
