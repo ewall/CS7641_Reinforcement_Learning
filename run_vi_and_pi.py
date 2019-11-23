@@ -20,7 +20,7 @@ SEED = 1
 
 ### Code Credit -- multiple functions on this page were modified from:
 #   Title: OpenAI Gym Solutions
-#   Author: Allan Brayes
+#   Author: Allan Reyes
 #   Date: 2017-04-22
 #   Code version: commit 20481fc1e1a2fdfcba5b0ce27927e5e29a122fc4
 #   Availability: https://github.com/allanbreyes/gym-solutions/blob/master/analysis/mdp.py
