@@ -125,42 +125,42 @@ if __name__ == "__main__":
 	# allow Pandas to print more
 	pd.options.display.width = 0
 
-	# # run Caveman's World (simple problem)
-	# run_and_evaluate('ewall/CavemanWorld-v1', 100)
+	# run Caveman's World (simple problem)
+	run_and_evaluate('ewall/CavemanWorld-v1', 100)
 
-	# # register small non-slippery gym with alternate rewards
-	# registration.register(
-	# 	id='ewall/FrozenLakeModified-v3',
-	# 	entry_point='env_frozen_lake_mod:FrozenLakeModified',
-	# 	kwargs={'map_size': 10, 'map_prob': 0.9, 'is_slippery': False, 'alt_reward': True},
-	# 	max_episode_steps=MAX_ITER,
-	# )
-	# # # just testing the small non-slippery lake...
-	# # run_and_evaluate('ewall/FrozenLakeModified-v3', 10 ** 6)
+	# register small non-slippery gym with alternate rewards
+	registration.register(
+		id='ewall/FrozenLakeModified-v3',
+		entry_point='env_frozen_lake_mod:FrozenLakeModified',
+		kwargs={'map_size': 10, 'map_prob': 0.9, 'is_slippery': False, 'alt_reward': True},
+		max_episode_steps=MAX_ITER,
+	)
+	# just testing the small non-slippery lake...
+	run_and_evaluate('ewall/FrozenLakeModified-v3', 10 ** 6)
 
 	### WARNING: the following code will take *hours* to run, caveat emptor ###
 
-	# # run explore/exploit comparison on Frozen Lake/Original
-	# ee_fl_orig = run_ee_comparison('ewall/FrozenLakeModified-v1', max_iterations=2 * 10 ** 8)
-	# print(ee_fl_orig)
-	# pickle.dump(ee_fl_orig, open('pickles/ee_fl_orig.pickle', 'wb'))
+	# run explore/exploit comparison on Frozen Lake/Original
+	ee_fl_orig = run_ee_comparison('ewall/FrozenLakeModified-v1', max_iterations=2 * 10 ** 8)
+	print(ee_fl_orig)
+	pickle.dump(ee_fl_orig, open('pickles/ee_fl_orig.pickle', 'wb'))
 
-	# # run explore/exploit comparison on Frozen Lake/Modified
-	# ee_fl_alt = run_ee_comparison('ewall/FrozenLakeModified-v2', max_iterations=2 * 10 ** 8)
-	# print(ee_fl_alt)
-	# pickle.dump(ee_fl_alt, open('pickles/ee_fl_alt.pickle', 'wb'))
+	# run explore/exploit comparison on Frozen Lake/Modified
+	ee_fl_alt = run_ee_comparison('ewall/FrozenLakeModified-v2', max_iterations=2 * 10 ** 8)
+	print(ee_fl_alt)
+	pickle.dump(ee_fl_alt, open('pickles/ee_fl_alt.pickle', 'wb'))
 
-	# ee_fl_det = run_ee_comparison('ewall/FrozenLakeModified-v1', max_iterations=10 ** 7)
-	# print(ee_fl_det)
-	# pickle.dump(ee_fl_det, open('pickles/ee_fl_det.pickle', 'wb'))
+	ee_fl_det = run_ee_comparison('ewall/FrozenLakeModified-v1', max_iterations=10 ** 7)
+	print(ee_fl_det)
+	pickle.dump(ee_fl_det, open('pickles/ee_fl_det.pickle', 'wb'))
 
-	# # re-run optimistic exploration
-	# ee_fl_opt = run_ee_comparison('ewall/FrozenLakeModified-v1', max_iterations=2 * 10 ** 8)
-	# print(ee_fl_opt)
-	# pickle.dump(ee_fl_opt, open('pickles/ee_fl_opt.pickle', 'wb'))
+	# re-run optimistic exploration
+	ee_fl_opt = run_ee_comparison('ewall/FrozenLakeModified-v1', max_iterations=2 * 10 ** 8)
+	print(ee_fl_opt)
+	pickle.dump(ee_fl_opt, open('pickles/ee_fl_opt.pickle', 'wb'))
 
 	# run "best" Frozen Lake (Original)
-	run_and_evaluate('ewall/FrozenLakeModified-v1', 10 ** 7)
+	run_and_evaluate('ewall/FrozenLakeModified-v1', 10 ** 8)
 
 	# run "best" Frozen Lake (Alternate)
-	run_and_evaluate('ewall/FrozenLakeModified-v2', 10 ** 7)
+	run_and_evaluate('ewall/FrozenLakeModified-v2', 10 ** 8)
