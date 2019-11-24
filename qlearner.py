@@ -30,17 +30,18 @@ class QLearner(object):
 		:param num_states: Total number of possible states; integer.
 		:param num_actions: Total number of possible actions; integer.
 		:param random_explorer: Object for randomized exploration/exploitation choices.
-		:param alpha: Learning rate; float between 0.0 and 1.0.
+		:param alpha: Learning rate; float between 0.0 and 1.0, or None to use built-in decay.
 		:param gamma: Discount rate: float between 0.0 and 1.0
 		:param optimistic_init: Initialize Q for optimism-in-the-face-of-uncertainty; float.
 		:param verbose: Enable debugging printouts.
 		"""
 
-		# sanity check
-		inputs = {'alpha': alpha, 'gamma': gamma}
-		for key in inputs:
-			if inputs[key] < 0 or inputs[key] > 1:
-				raise ValueError(key + " value must be between 0.0 and 1.0.")
+		# sanity checks
+		if gamma < 0 or gamma > 1:
+			raise ValueError("gamma value must be between 0.0 and 1.0.")
+		if alpha is not None:
+			if alpha < 0 or alpha > 1:
+				raise ValueError("alpha value must be between 0.0 and 1.0.")
 
 		# save config
 		self.num_actions = num_actions
@@ -100,6 +101,7 @@ class QLearner(object):
 
 		for i in range(max_iterations):
 			state, reward, done, _ = env.step(action)
+			action = self.update_and_query(state, reward, i)
 
 			if done:
 				if self.verbose:
@@ -108,8 +110,6 @@ class QLearner(object):
 				self.reset(initial_state)
 				continue
 
-			action = self.update_and_query(state, reward, i)
-
 			# check if optimal policy already achieved
 			if hasattr(env, 'optimal_policy') and optimal_achieved == False:
 				current_policy = self.get_policy()
@@ -117,8 +117,9 @@ class QLearner(object):
 				if diff == 0:
 					optimal_achieved = True
 					print("Optimal policy found on iteration", str(i + 1))
+					# break
 
-			# TODO WHEN DO WE STOP?!?
+			#TODO convergence detection (other than optimal policy) not yet implemented
 
 		if self.verbose:
 			print("Q:\n", self.q)
@@ -138,15 +139,16 @@ class QLearner(object):
 
 		# calculate Q value
 		prev_q = self.q[self.s, self.a]
-		# future_q = r + self.gamma * self.q[s_prime, np.argmax(self.q[s_prime, :])]
+		# previously: future_q = r + self.gamma * self.q[s_prime, np.argmax(self.q[s_prime, :])]
 		future_q = r + self.gamma * self.q[s_prime, :].max() - prev_q
 
-		#TODO decay learning rate? e.g. (1 / _math.sqrt(n + 2)) * delta
-		future_q = (1 / sqrt(n + 2)) * future_q
-
-		# self.q[self.s, self.a] = (1 - self.alpha) * prev_q + (self.alpha * future_q)  # using alpha
-		self.q[self.s, self.a] = prev_q + future_q  # ignoring alpha
-
+		if self.alpha is None:
+			# use built-in decay method
+			future_q = (1 / sqrt(n + 2)) * future_q
+			self.q[self.s, self.a] = prev_q + future_q
+		else:
+			# use static alpha value
+			self.q[self.s, self.a] = (1 - self.alpha) * prev_q + (self.alpha * future_q)
 
 		if self.verbose:
 			print("   prev_q:", prev_q, "future_q:", future_q, "q_value:", self.q[self.s, self.a])
