@@ -3,6 +3,7 @@
 
 import pickle
 import gym
+from gym.envs import registration
 import pandas as pd
 import env_caveman_world  # registers 'ewall/CavemanWorld-v1' env
 import env_frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alternate reward) envs
@@ -21,29 +22,27 @@ def run_and_evaluate(env_name, max_iterations=10 ** 7, print_grids=True):
 	num_actions = env.action_space.n
 
 	# build Q-learner
-	ee = greedy()
-	# ee = eps_greedy(0.8)
+	# ee = greedy()  # set optimistic_init to small value like 0.0001
+	ee = eps_greedy(0.7)
 	# ee = eps_decay(decay=0.00005, verbose=True)
 	# ee = greedy_decay(verbose=False)
-	# ee = min_explorer(num_states, num_actions, 1)
+	# ee = min_explorer(num_states, num_actions, 5)
 	ql = QLearner(num_states=num_states,
 	              num_actions=num_actions,
 	              random_explorer=ee,
-	              alpha=0.9,
+	              alpha=None,
 	              gamma=0.9995,
-	              optimistic_init=0.01,
+	              optimistic_init=0.000001,
 	              verbose=False)
 
 	# run learner
 	s = env.reset()
 	ql.reset(s)
-	policy, iters, q_variation, episode_rewards = ql.run(env, max_iterations=max_iterations)
+	policy, iters = ql.run(env, max_iterations=max_iterations)
 
 	print('\n== Q-Learning ==')
 	print('Iterations:', iters)
 	print('Percent randomized exploration:', ee.get_percent_randomized())
-	# print('Variations:', q_variation)
-	# print('Rewards curve:', episode_rewards)
 	print()
 
 	print('== QL Policy ==')
@@ -69,11 +68,12 @@ def run_ee_comparison(env_name, max_iterations=10 ** 7, print_grids=True):
 	results = []
 
 	# prepare EE methods
-	ee_methods = {'optimistic': greedy(),
-	              'eps_greedy': eps_greedy(0.8),
-	              'eps_decay': eps_decay(decay=0.000005),
-	              'min_explorer': min_explorer(num_states, num_actions, 20)}
+	# ee_methods = {'optimistic': greedy(),
+	#               'eps_greedy': eps_greedy(0.8),
+	#               'eps_decay': eps_decay(decay=0.000005),
+	#               'min_explorer': min_explorer(num_states, num_actions, 20)}
 	# skipping: 'greedy_decay': greedy_decay()
+	ee_methods = {'optimistic': greedy()}
 
 	# loop and evaluate each method
 	for name, ee in ee_methods.items():
@@ -86,7 +86,7 @@ def run_ee_comparison(env_name, max_iterations=10 ** 7, print_grids=True):
 		ql = QLearner(num_states=num_states,
 		              num_actions=num_actions,
 		              random_explorer=ee,
-		              alpha=0.9,
+		              alpha=None,
 		              gamma=0.9995,
 		              optimistic_init=opt_init,
 		              verbose=False)
@@ -94,7 +94,7 @@ def run_ee_comparison(env_name, max_iterations=10 ** 7, print_grids=True):
 		# reset environtment and run learner
 		s = env.reset()
 		ql.reset(s)
-		policy, _, _, _ = ql.run(env, max_iterations=max_iterations)
+		policy, _ = ql.run(env, max_iterations=max_iterations)
 
 		print('Policy:')
 		if print_grids:
@@ -128,18 +128,39 @@ if __name__ == "__main__":
 	# # run Caveman's World (simple problem)
 	# run_and_evaluate('ewall/CavemanWorld-v1', 100)
 
-	# run explore/exploit comparison on Frozen Lake/Original
-	ee_fl_orig = run_ee_comparison('ewall/FrozenLakeModified-v1', max_iterations=2 * 10 ** 8)
-	print(ee_fl_orig)
-	pickle.dump(ee_fl_orig, open('pickles/ee_fl_orig', 'wb'))
+	# # register small non-slippery gym with alternate rewards
+	# registration.register(
+	# 	id='ewall/FrozenLakeModified-v3',
+	# 	entry_point='env_frozen_lake_mod:FrozenLakeModified',
+	# 	kwargs={'map_size': 10, 'map_prob': 0.9, 'is_slippery': False, 'alt_reward': True},
+	# 	max_episode_steps=MAX_ITER,
+	# )
+	# # # just testing the small non-slippery lake...
+	# # run_and_evaluate('ewall/FrozenLakeModified-v3', 10 ** 6)
 
-	# run explore/exploit comparison on Frozen Lake/Modified
-	ee_fl_alt = run_ee_comparison('ewall/FrozenLakeModified-v2', max_iterations=2 * 10 ** 8)
-	print(ee_fl_alt)
-	pickle.dump(ee_fl_alt, open('pickles/ee_fl_alt', 'wb'))
+	### WARNING: the following code will take *hours* to run, caveat emptor ###
 
-	# # run "best" Frozen Lake (Original)
-	# run_and_evaluate('ewall/FrozenLakeModified-v1', 5 * 10 ** 8)
-	#
-	# # run "best" Frozen Lake (Alternate)
-	# run_and_evaluate('ewall/FrozenLakeModified-v2', 5 * 10 ** 8)
+	# # run explore/exploit comparison on Frozen Lake/Original
+	# ee_fl_orig = run_ee_comparison('ewall/FrozenLakeModified-v1', max_iterations=2 * 10 ** 8)
+	# print(ee_fl_orig)
+	# pickle.dump(ee_fl_orig, open('pickles/ee_fl_orig.pickle', 'wb'))
+
+	# # run explore/exploit comparison on Frozen Lake/Modified
+	# ee_fl_alt = run_ee_comparison('ewall/FrozenLakeModified-v2', max_iterations=2 * 10 ** 8)
+	# print(ee_fl_alt)
+	# pickle.dump(ee_fl_alt, open('pickles/ee_fl_alt.pickle', 'wb'))
+
+	# ee_fl_det = run_ee_comparison('ewall/FrozenLakeModified-v1', max_iterations=10 ** 7)
+	# print(ee_fl_det)
+	# pickle.dump(ee_fl_det, open('pickles/ee_fl_det.pickle', 'wb'))
+
+	# # re-run optimistic exploration
+	# ee_fl_opt = run_ee_comparison('ewall/FrozenLakeModified-v1', max_iterations=2 * 10 ** 8)
+	# print(ee_fl_opt)
+	# pickle.dump(ee_fl_opt, open('pickles/ee_fl_opt.pickle', 'wb'))
+
+	# run "best" Frozen Lake (Original)
+	run_and_evaluate('ewall/FrozenLakeModified-v1', 10 ** 7)
+
+	# run "best" Frozen Lake (Alternate)
+	run_and_evaluate('ewall/FrozenLakeModified-v2', 10 ** 7)
