@@ -181,22 +181,29 @@ class greedy(object):
 	def eval(self):
 		return True
 
+	def get_percent_randomized(self):
+		return 1.0
+
 
 class eps_greedy(object):
-	""" Exploit """
+	""" Explore epsilon percent of the time """
 	def __init__(self, epsilon, verbose=False):
 		if epsilon < 0 or epsilon > 1:
 			raise ValueError("epsilon value must be between 0.0 and 1.0.")
 		self.epsilon = epsilon
 		self.verbose = verbose
+		self.t = 0
+		self.r = 0
 
 	def eval(self):
 		pick_randomly = True if random.random() <= self.epsilon else False
-
+		self.t += 1
 		if self.verbose:
 			print("   random?=", pick_randomly)
-
 		return pick_randomly
+
+	def get_percent_randomized(self):
+		return self.r / self.t
 
 
 class eps_decay(object):
@@ -209,10 +216,11 @@ class eps_decay(object):
 		self.minimum = minimum
 		self.verbose = verbose
 		self.t = 0
+		self.r = 0
 
 	def eval(self):
 		pick_randomly = True if random.random() <= self.epsilon else False
-
+		self.t += 1
 		if self.verbose:
 			print("   random?=", pick_randomly, "eps=", self.epsilon, "at t=", self.t)
 
@@ -220,9 +228,11 @@ class eps_decay(object):
 		self.epsilon = 1.0 * np.exp(-self.start * self.decay * self.t)
 		if self.epsilon < self.minimum:
 			self.epsilon = self.minimum
-		self.t += 1
 
 		return pick_randomly
+
+	def get_percent_randomized(self):
+		return self.r / self.t
 
 
 class greedy_decay(object):
@@ -230,15 +240,17 @@ class greedy_decay(object):
 	def __init__(self, verbose=False):
 		self.verbose = verbose
 		self.t = 0
+		self.r = 0
 
 	def eval(self):
 		pick_randomly = np.random.random() >= (1 - (1 / log(self.t + 2)))
 		self.t += 1
-
 		if self.verbose:
 			print("   random?=", pick_randomly, "at t=", self.t)
-
 		return pick_randomly
+
+	def get_percent_randomized(self):
+		return self.r / self.t
 
 
 if __name__ == "__main__":
