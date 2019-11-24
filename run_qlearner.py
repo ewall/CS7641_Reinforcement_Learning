@@ -13,31 +13,35 @@ SEED = 1
 
 
 def run_and_evaluate(env_name, max_iterations=10 ** 7, print_grids=True):
-
+	""" Perform a single learning run and evaluate results """
+	print('== {} =='.format(env_name))
 	env = gym.make(env_name)
 	env.seed(SEED)
-	s = env.reset()
-	print('== {} =='.format(env_name))
+	num_states = env.observation_space.n
+	num_actions = env.action_space.n
 
 	# build Q-learner
 	ee = greedy()
 	# ee = eps_greedy(0.8)
 	# ee = eps_decay(decay=0.00005, verbose=True)
 	# ee = greedy_decay(verbose=False)
-	ql = QLearner(num_states=env.observation_space.n,
-	              num_actions=env.action_space.n,
+	# ee = min_explorer(num_states, num_actions, 1)
+	ql = QLearner(num_states=num_states,
+	              num_actions=num_actions,
 	              random_explorer=ee,
 	              alpha=0.9,
 	              gamma=0.9995,
 	              optimistic_init=0.01,
 	              verbose=False)
-	ql.reset(s)
 
 	# run learner
+	s = env.reset()
+	ql.reset(s)
 	policy, iters, q_variation, episode_rewards = ql.run(env, max_iterations=max_iterations)
 
 	print('\n== Q-Learning ==')
 	print('Iterations:', iters)
+	print('Percent randomized exploration:', ee.get_percent_randomized())
 	# print('Variations:', q_variation)
 	# print('Rewards curve:', episode_rewards)
 	print()
@@ -55,9 +59,10 @@ def run_and_evaluate(env_name, max_iterations=10 ** 7, print_grids=True):
 def run_ee_comparison(env_name, max_iterations=10 ** 7, print_grids=True):
 	"""" Compare different exploit/explore methods """
 	print('== {}: Explore/Exploit Experiments ==\n'.format(env_name))
-
 	env = gym.make(env_name)
 	env.seed(SEED)
+	num_states = env.observation_space.n
+	num_actions = env.action_space.n
 
 	# prepare to save results
 	result_labels = ('ee_method', 'percent_random', 'mean_reward', 'max_reward', 'mean_actions', 'max_actions')
@@ -66,7 +71,8 @@ def run_ee_comparison(env_name, max_iterations=10 ** 7, print_grids=True):
 	# prepare EE methods
 	ee_methods = {'optimistic': greedy(),
 	              'eps_greedy': eps_greedy(0.8),
-	              'eps_decay': eps_decay(decay=0.000005)}
+	              'eps_decay': eps_decay(decay=0.000005),
+	              'min_explorer': min_explorer(num_states, num_actions, 20)}
 	# skipping: 'greedy_decay': greedy_decay()
 
 	# loop and evaluate each method
@@ -77,8 +83,8 @@ def run_ee_comparison(env_name, max_iterations=10 ** 7, print_grids=True):
 		opt_init = 0.01 if name == 'optimistic' else None
 
 		# build a Q-learner
-		ql = QLearner(num_states=env.observation_space.n,
-		              num_actions=env.action_space.n,
+		ql = QLearner(num_states=num_states,
+		              num_actions=num_actions,
 		              random_explorer=ee,
 		              alpha=0.9,
 		              gamma=0.9995,
@@ -122,18 +128,18 @@ if __name__ == "__main__":
 	# # run Caveman's World (simple problem)
 	# run_and_evaluate('ewall/CavemanWorld-v1', 100)
 
-	# # run Frozen Lake (Original)
-	# run_and_evaluate('ewall/FrozenLakeModified-v1', 5 * 10 ** 8)
-	#
-	# # run Frozen Lake (Alternate)
-	# run_and_evaluate('ewall/FrozenLakeModified-v2', 5 * 10 ** 8)
-
 	# run explore/exploit comparison on Frozen Lake/Original
-	ee_fl_orig = run_ee_comparison('ewall/FrozenLakeModified-v1', max_iterations=10 ** 7)
+	ee_fl_orig = run_ee_comparison('ewall/FrozenLakeModified-v1', max_iterations=2 * 10 ** 8)
 	print(ee_fl_orig)
 	pickle.dump(ee_fl_orig, open('pickles/ee_fl_orig', 'wb'))
 
 	# run explore/exploit comparison on Frozen Lake/Modified
-	ee_fl_alt = run_ee_comparison('ewall/FrozenLakeModified-v2', max_iterations=10 ** 7)
+	ee_fl_alt = run_ee_comparison('ewall/FrozenLakeModified-v2', max_iterations=2 * 10 ** 8)
 	print(ee_fl_alt)
 	pickle.dump(ee_fl_alt, open('pickles/ee_fl_alt', 'wb'))
+
+	# # run "best" Frozen Lake (Original)
+	# run_and_evaluate('ewall/FrozenLakeModified-v1', 5 * 10 ** 8)
+	#
+	# # run "best" Frozen Lake (Alternate)
+	# run_and_evaluate('ewall/FrozenLakeModified-v2', 5 * 10 ** 8)
