@@ -94,33 +94,21 @@ class QLearner(object):
 	@timing
 	def run(self, env, max_iterations=MAX_ITER):
 		""" Iterate thru episodes with gym env until stopped """
-
-		q_variation, episode_rewards = [], []
 		optimal_achieved = False
-
-		total_reward = 0
 		initial_state = env.reset()
 		action = self.reset(initial_state)  # set the initial state and get first action
-		for i in range(max_iterations):
-			#total_reward = 0
-			state, reward, done, _ = env.step(action)
-			total_reward += reward
 
-			if self.verbose:
-				print("   done=", done)
+		for i in range(max_iterations):
+			state, reward, done, _ = env.step(action)
 
 			if done:
-				episode_rewards.append(total_reward)
-				total_reward = 0
+				if self.verbose:
+					print("   episode done")
 				initial_state = env.reset()
 				self.reset(initial_state)
 				continue
 
-			prev_q = self.q[self.s, self.a]  # for variation
 			action = self.update_and_query(state, reward)
-
-			q_var = abs(prev_q - self.q[self.s, self.a])
-			q_variation.append(q_var)
 
 			# check if optimal policy already achieved
 			if hasattr(env, 'optimal_policy') and optimal_achieved == False:
@@ -135,7 +123,7 @@ class QLearner(object):
 		if self.verbose:
 			print("Q:\n", self.q)
 
-		return self.get_policy(), i + 1, q_variation, episode_rewards
+		return self.get_policy(), i + 1
 
 	def update_and_query(self, s_prime, r):
 		"""
