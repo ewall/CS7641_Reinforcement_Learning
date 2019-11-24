@@ -130,7 +130,13 @@ class QLearner(object):
 					optimal_achieved = True
 					print("Optimal policy found on iteration", str(i + 1))
 
-		# TODO WHEN DO WE STOP?!?
+			# TODO WHEN DO WE STOP?!?
+
+			# break if min_explorer has explored every state/action pair enough times
+			if isinstance(self.random_explorer, min_explorer):
+				if not self.random_explorer.still_exploring():
+					print('Minimum exploration amount reached at t=', self.random_explorer.t)
+					break
 
 		if self.verbose:
 			print("Q:\n", self.q)
@@ -157,6 +163,8 @@ class QLearner(object):
 			print("   prev_q:", prev_q, "future_q:", future_q, "q_value:", self.q[self.s, self.a])
 
 		# decide if action will be random
+		if isinstance(self.random_explorer, min_explorer):
+			self.random_explorer.set_state(self.s, self.a)
 		if self.random_explorer.eval():
 			action = random.randint(0, self.num_actions - 1)  # random exploration
 			if self.verbose:
@@ -264,6 +272,45 @@ class greedy_decay(object):
 
 	def get_percent_randomized(self):
 		return self.r / self.t
+
+
+class min_explorer(object):
+	""" Ensure each state/action pair is explored a minimum number of times """
+	def __init__(self, num_states, num_actions, min_explores, verbose=False):
+		self.explorations = np.full((num_states, num_actions), int(min_explores))
+		self.verbose = verbose
+		self.t = 0
+		self.r = 0
+
+	def set_state(self, s, a):
+		self.s = s
+		self.a = a
+
+	def eval(self, s=None, a=None):
+		if s is None:
+			s = self.s
+		if a is None:
+			a = self.a
+
+		if self.explorations[s][a] > 0:
+			self.explorations[s][a] -= 1
+			pick_randomly = True
+			self.r += 1
+		else:
+			pick_randomly = False
+
+		self.t += 1
+
+		if self.verbose:
+			print("   random?=", pick_randomly, "at (s,a):", s, a)
+
+		return pick_randomly
+
+	def get_percent_randomized(self):
+		return self.r / self.t
+
+	def still_exploring(self):
+		return np.any(self.explorations)
 
 
 if __name__ == "__main__":
