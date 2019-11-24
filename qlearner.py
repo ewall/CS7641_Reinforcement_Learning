@@ -2,7 +2,7 @@
 # Eric W. Wallace, ewallace8-at-gatech-dot-edu, GTID 903105196
 
 import random
-from math import log
+from math import log, sqrt
 import numpy as np
 from run_vi_and_pi import diff_policies, timing
 
@@ -108,7 +108,7 @@ class QLearner(object):
 				self.reset(initial_state)
 				continue
 
-			action = self.update_and_query(state, reward)
+			action = self.update_and_query(state, reward, i)
 
 			# check if optimal policy already achieved
 			if hasattr(env, 'optimal_policy') and optimal_achieved == False:
@@ -125,7 +125,7 @@ class QLearner(object):
 
 		return self.get_policy(), i + 1
 
-	def update_and_query(self, s_prime, r):
+	def update_and_query(self, s_prime, r, n=0):
 		"""
 		@summary: Update the Q table and return an action
 		@param s_prime: The new state
@@ -138,8 +138,15 @@ class QLearner(object):
 
 		# calculate Q value
 		prev_q = self.q[self.s, self.a]
-		future_q = r + self.gamma * self.q[s_prime, np.argmax(self.q[s_prime, :])]
-		self.q[self.s, self.a] = (1 - self.alpha) * prev_q + (self.alpha * future_q)
+		# future_q = r + self.gamma * self.q[s_prime, np.argmax(self.q[s_prime, :])]
+		future_q = r + self.gamma * self.q[s_prime, :].max() - prev_q
+
+		#TODO decay learning rate? e.g. (1 / _math.sqrt(n + 2)) * delta
+		future_q = (1 / sqrt(n + 2)) * future_q
+
+		# self.q[self.s, self.a] = (1 - self.alpha) * prev_q + (self.alpha * future_q)  # using alpha
+		self.q[self.s, self.a] = prev_q + future_q  # ignoring alpha
+
 
 		if self.verbose:
 			print("   prev_q:", prev_q, "future_q:", future_q, "q_value:", self.q[self.s, self.a])
@@ -169,10 +176,10 @@ class greedy(object):
 		pass
 
 	def eval(self):
-		return True
+		return False
 
 	def get_percent_randomized(self):
-		return 1.0
+		return 0.0
 
 
 class eps_greedy(object):
