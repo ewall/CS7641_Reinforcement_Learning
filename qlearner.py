@@ -132,12 +132,6 @@ class QLearner(object):
 
 			# TODO WHEN DO WE STOP?!?
 
-			# break if min_explorer has explored every state/action pair enough times
-			if isinstance(self.random_explorer, min_explorer):
-				if not self.random_explorer.still_exploring():
-					print('Minimum exploration amount reached at t=', self.random_explorer.t)
-					break
-
 		if self.verbose:
 			print("Q:\n", self.q)
 
