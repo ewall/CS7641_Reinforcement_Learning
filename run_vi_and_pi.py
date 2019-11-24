@@ -1,14 +1,13 @@
 # Project 4: Reinforcement Learning -- GT CS7641 Machine Learning, Fall 2019
 # Eric W. Wallace, ewallace8-at-gatech-dot-edu, GTID 903105196
 
-import matplotlib.pyplot as plt
 import random
 import timeit
-
 import gym
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
+from gym.envs import registration
 import env_caveman_world  # registers 'ewall/CavemanWorld-v1' env
 import env_frozen_lake_mod  # registers 'ewall/FrozenLakeModified-v1' & v2 (alternate reward) envs
 
@@ -425,12 +424,45 @@ if __name__ == "__main__":
 	                                                                    'Frozen Lake (Alternate Rewards)',
 	                                                                    gammas)
 
-	# # run Frozen Lake (Alt), comparing different delta values
-	# deltas = [1.0, 0.1, 0.01, 0.001, 0.0001]
-	# vi_rewards_d, pi_rewards_d, pol_diffs_d = run_delta_comparison('ewall/FrozenLakeModified-v2', 'Frozen Lake', deltas)
+	# run Frozen Lake (Alt), comparing different delta values
+	deltas = [1.0, 0.1, 0.01, 0.001, 0.0001]
+	vi_rewards_d, pi_rewards_d, pol_diffs_d = run_delta_comparison('ewall/FrozenLakeModified-v2', 'Frozen Lake', deltas)
 
 	# "best" Frozen Lake (Orig)
 	run_and_evaluate('ewall/FrozenLakeModified-v1', 'Frozen Lake (Original Reward)', gamma=0.9995, delta=0.0001)
 
 	# "best" Frozen Lake (Alt)
 	run_and_evaluate('ewall/FrozenLakeModified-v2', 'Frozen Lake (Alternate Reward)', gamma=0.9995, delta=0.0001)
+
+	### DIFFERENT SIZE GRIDS ###
+
+	# register a few different sizes of Frozen Lake...
+	registration.register(
+		id='ewall/FrozenLakeModified-v10',
+		entry_point='env_frozen_lake_mod:FrozenLakeModified',
+		kwargs={'map_size': 10, 'map_prob': 0.9, 'is_slippery': True, 'alt_reward': True},
+		max_episode_steps=MAX_ITER,
+	)
+	run_and_evaluate('ewall/FrozenLakeModified-v10', 'Frozen Lake (10x10)',
+	                 gamma=0.9995, delta=0.0001,
+	                 print_grids=False, plot=False)
+
+	registration.register(
+		id='ewall/FrozenLakeModified-v20',
+		entry_point='env_frozen_lake_mod:FrozenLakeModified',
+		kwargs={'map_size': 20, 'map_prob': 0.9, 'is_slippery': True, 'alt_reward': True},
+		max_episode_steps=MAX_ITER,
+	)
+	run_and_evaluate('ewall/FrozenLakeModified-v20', 'Frozen Lake (20x20)',
+	                 gamma=0.9995, delta=0.0001,
+	                 print_grids=False, plot=False)
+
+	registration.register(
+		id='ewall/FrozenLakeModified-v30',
+		entry_point='env_frozen_lake_mod:FrozenLakeModified',
+		kwargs={'map_size': 30, 'map_prob': 0.9, 'is_slippery': True, 'alt_reward': True},
+		max_episode_steps=MAX_ITER,
+	)
+	run_and_evaluate('ewall/FrozenLakeModified-v30', 'Frozen Lake (30x30)',
+	                 gamma=0.9995, delta=0.0001,
+	                 print_grids=False, plot=False)
