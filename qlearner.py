@@ -197,7 +197,11 @@ class eps_greedy(object):
 
 	def eval(self):
 		pick_randomly = True if random.random() <= self.epsilon else False
+
+		if pick_randomly:
+			self.r += 1
 		self.t += 1
+
 		if self.verbose:
 			print("   random?=", pick_randomly)
 		return pick_randomly
@@ -220,7 +224,11 @@ class eps_decay(object):
 
 	def eval(self):
 		pick_randomly = True if random.random() <= self.epsilon else False
+
+		if pick_randomly:
+			self.r += 1
 		self.t += 1
+
 		if self.verbose:
 			print("   random?=", pick_randomly, "eps=", self.epsilon, "at t=", self.t)
 
@@ -244,9 +252,14 @@ class greedy_decay(object):
 
 	def eval(self):
 		pick_randomly = np.random.random() >= (1 - (1 / log(self.t + 2)))
+
+		if pick_randomly:
+			self.r += 1
 		self.t += 1
+
 		if self.verbose:
 			print("   random?=", pick_randomly, "at t=", self.t)
+
 		return pick_randomly
 
 	def get_percent_randomized(self):
